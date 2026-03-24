@@ -1,0 +1,21 @@
+<%
+String contextPath = request.getContextPath();
+%>
+<%!
+private String h(Object value) {
+    if (value == null) {
+        return "";
+    }
+    String text = String.valueOf(value);
+    return text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
+}
+
+private String selected(Object currentValue, String candidate) {
+    String current = currentValue == null ? "" : String.valueOf(currentValue);
+    return candidate.equals(current) ? "selected" : "";
+}
+%>
