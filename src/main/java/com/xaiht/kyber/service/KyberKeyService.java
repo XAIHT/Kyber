@@ -13,6 +13,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+import jakarta.enterprise.context.Dependent;
+
 import org.bouncycastle.pqc.jcajce.interfaces.KyberKey;
 
 import com.xaiht.kyber.crypto.CryptoOperationException;
@@ -21,6 +23,7 @@ import com.xaiht.kyber.crypto.KyberSecurityLevel;
 import com.xaiht.kyber.crypto.PostQuantumProviderRegistry;
 import com.xaiht.kyber.crypto.ValidationException;
 
+@Dependent
 public class KyberKeyService {
 
     private static final String KEY_ALGORITHM = "KYBER";

@@ -8,6 +8,9 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Inject;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -24,6 +27,7 @@ import com.xaiht.kyber.crypto.KyberSecurityLevel;
 import com.xaiht.kyber.crypto.PostQuantumProviderRegistry;
 import com.xaiht.kyber.crypto.ValidationException;
 
+@Dependent
 public class KyberCipherService {
 
     private static final String KEM_ALGORITHM = "KYBER";
@@ -40,6 +44,7 @@ public class KyberCipherService {
         this(new KyberKeyService());
     }
 
+    @Inject
     public KyberCipherService(KyberKeyService keyService) {
         this.keyService = keyService;
     }

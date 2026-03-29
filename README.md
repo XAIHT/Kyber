@@ -1,6 +1,6 @@
 # XaihtKyber
 
-[![Java 11](https://img.shields.io/badge/Java-11-0b5fff?style=for-the-badge)](https://www.oracle.com/java/)
+[![Java 17](https://img.shields.io/badge/Java-17-0b5fff?style=for-the-badge)](https://www.oracle.com/java/)
 [![Maven WAR](https://img.shields.io/badge/Maven-WAR-b14e2d?style=for-the-badge)](https://maven.apache.org/)
 [![Post-Quantum](https://img.shields.io/badge/Post--Quantum-Kyber-1a7f4b?style=for-the-badge)](#overview)
 
@@ -55,10 +55,10 @@ It is useful when you want to:
 
 | Layer | Technology |
 | --- | --- |
-| Language | Java 11 |
+| Language | Java 17 |
 | Build tool | Maven |
 | Packaging | WAR |
-| Web stack | Jakarta Servlet 6.0 + JSP |
+| Web stack | Jakarta EE 10 Web Profile (Servlet 6.0, CDI 4.0, JSP) |
 | PQC provider | Bouncy Castle PQC (`bcprov-jdk18on`) |
 | KEM | CRYSTALS-Kyber |
 | Symmetric encryption | AES-256-GCM |
@@ -183,14 +183,15 @@ The application accepts either numeric values (`512`, `768`, `1024`) or the name
 
 ## Requirements
 
-- JDK 11+
+- JDK 17+
 - Maven 3.9+ recommended
-- A Jakarta-compatible servlet container for deployment
+- GlassFish 7.x or another Jakarta EE 10 compatible servlet container
 
 Typical deployment targets:
 
-- GlassFish / Payara
-- any servlet container capable of running a Jakarta Servlet 6 WAR
+- GlassFish 7
+- Payara 6
+- any servlet container capable of running a Jakarta EE 10 / Servlet 6 WAR
 
 ## Build And Verify
 
@@ -217,16 +218,16 @@ target/XaihtKyber.war
 ### Manual deployment
 
 1. Build the WAR with `mvn clean package`
-2. Deploy `target/XaihtKyber.war` to your servlet container
+2. Deploy `target/XaihtKyber.war` to GlassFish 7 or another Jakarta EE 10 container
 3. Open the application in the deployed context, commonly:
 
 ```text
 http://localhost:8080/XaihtKyber/
 ```
 
-### GlassFish auto-deploy profile
+### GlassFish 7 auto-deploy profile
 
-If `GLASSFISH_HOME` is configured, the project can copy the WAR to GlassFish's `autodeploy` directory during install:
+If `GLASSFISH_HOME` points at a GlassFish 7 installation, the project can copy the WAR to that domain's `autodeploy` directory during install:
 
 ```bash
 mvn clean install -Pauto-deploy
@@ -521,6 +522,12 @@ The current tests cover:
 - successful cipher/decipher round trips across all supported Kyber levels
 - successful attestation/verification round trips across all supported Kyber levels
 - rejection of a tampered attested payload
+
+GlassFish 7 alignment details:
+
+- the WAR is compiled with `--release 17`
+- Jakarta APIs are supplied by `jakarta.jakartaee-web-api` with `provided` scope
+- servlet collaborators are CDI-managed through `beans.xml` and `@Inject`
 
 Verified locally with:
 

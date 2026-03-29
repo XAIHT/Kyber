@@ -2,6 +2,7 @@ package com.xaiht.kyber.web;
 
 import java.io.IOException;
 
+import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +15,8 @@ import com.xaiht.kyber.service.KyberAttestationService;
 @WebServlet("/attestation/sign")
 public class KyberSignerServlet extends BaseKyberServlet {
 
-    private final KyberAttestationService attestationService = new KyberAttestationService();
+    @Inject
+    private KyberAttestationService attestationService;
 
     @Override
     protected String getViewPath() {

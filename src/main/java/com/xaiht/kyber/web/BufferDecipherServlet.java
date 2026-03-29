@@ -2,6 +2,7 @@ package com.xaiht.kyber.web;
 
 import java.io.IOException;
 
+import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +14,8 @@ import com.xaiht.kyber.service.KyberCipherService;
 @WebServlet("/buffer/decipher")
 public class BufferDecipherServlet extends BaseKyberServlet {
 
-    private final KyberCipherService cipherService = new KyberCipherService();
+    @Inject
+    private KyberCipherService cipherService;
 
     @Override
     protected String getViewPath() {

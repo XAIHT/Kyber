@@ -2,6 +2,7 @@ package com.xaiht.kyber.web;
 
 import java.io.IOException;
 
+import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +15,8 @@ import com.xaiht.kyber.service.KyberKeyService;
 @WebServlet("/keys/generate")
 public class KeyGenerationServlet extends BaseKyberServlet {
 
-    private final KyberKeyService keyService = new KyberKeyService();
+    @Inject
+    private KyberKeyService keyService;
 
     @Override
     protected String getViewPath() {
