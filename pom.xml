@@ -18,11 +18,25 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.release>17</maven.compiler.release>
     <jakarta.ee.version>10.0.0</jakarta.ee.version>
-    <bouncycastle.version>1.78.1</bouncycastle.version>
+    <bouncycastle.version>1.78.1.redhat-00002</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
     <dependency.check.outputDirectory>${project.build.directory}</dependency.check.outputDirectory>
     <dependency.check.report.file>${dependency.check.outputDirectory}/dependency-check-report.html</dependency.check.report.file>
   </properties>
+
+  <repositories>
+    <repository>
+      <id>redhat-ga</id>
+      <name>Red Hat GA</name>
+      <url>https://maven.repository.redhat.com/ga/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 
   <dependencies>
     <dependency>

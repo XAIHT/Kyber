@@ -46,7 +46,7 @@ These facts were confirmed from the codebase:
 - Final artifact: `target/XaihtKyber.war`
 - Java release target: `17`
 - Jakarta API dependency: `jakarta.jakartaee-web-api:10.0.0` with `provided` scope
-- PQC provider: `org.bouncycastle:bcprov-jdk18on:1.78.1`
+- PQC provider: `org.bouncycastle:bcprov-jdk18on:1.78.1.redhat-00002`
 - Welcome page: `index.jsp`
 - CDI enabled: `src/main/webapp/WEB-INF/beans.xml`
 - Web descriptor version: Servlet `6.0`

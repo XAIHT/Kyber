@@ -1,0 +1,533 @@
+{
+    "version": "1.4.0",
+    "project": {
+        "name": "XaihtKyber",
+        "directory": "E:\\XAIHT\\Kyber",
+        "workspaceDir": "E:\\XAIHT\\Kyber",
+        "sources": [
+            "E:\\XAIHT\\Kyber\\src\\main\\java"
+        ],
+        "dependencies": [
+            
+        ],
+        "classpath": [
+            "E:\\XAIHT\\Kyber\\target\\classes",
+            "C:\\Users\\angel\\.m2\\repository\\org\\bouncycastle\\bcprov-jdk18on\\1.78.1.redhat-00002\\bcprov-jdk18on-1.78.1.redhat-00002.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\platform\\jakarta.jakartaee-web-api\\10.0.0\\jakarta.jakartaee-web-api-10.0.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jakarta.servlet-api\\6.0.0\\jakarta.servlet-api-6.0.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jakarta.servlet.jsp-api\\3.1.0\\jakarta.servlet.jsp-api-3.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\el\\jakarta.el-api\\5.0.1\\jakarta.el-api-5.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jstl\\jakarta.servlet.jsp.jstl-api\\3.0.0\\jakarta.servlet.jsp.jstl-api-3.0.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\faces\\jakarta.faces-api\\4.0.1\\jakarta.faces-api-4.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\ws\\rs\\jakarta.ws.rs-api\\3.1.0\\jakarta.ws.rs-api-3.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-api\\2.1.0\\jakarta.websocket-api-2.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-client-api\\2.1.0\\jakarta.websocket-client-api-2.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\jakarta.json-api\\2.1.0\\jakarta.json-api-2.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\bind\\jakarta.json.bind-api\\3.0.0\\jakarta.json.bind-api-3.0.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\annotation\\jakarta.annotation-api\\2.1.1\\jakarta.annotation-api-2.1.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\ejb\\jakarta.ejb-api\\4.0.1\\jakarta.ejb-api-4.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\transaction\\jakarta.transaction-api\\2.0.1\\jakarta.transaction-api-2.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\persistence\\jakarta.persistence-api\\3.1.0\\jakarta.persistence-api-3.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\validation\\jakarta.validation-api\\3.0.2\\jakarta.validation-api-3.0.2.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\interceptor\\jakarta.interceptor-api\\2.1.0\\jakarta.interceptor-api-2.1.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.cdi-api\\4.0.1\\jakarta.enterprise.cdi-api-4.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.lang-model\\4.0.1\\jakarta.enterprise.lang-model-4.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\inject\\jakarta.inject-api\\2.0.1\\jakarta.inject-api-2.0.1.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\authentication\\jakarta.authentication-api\\3.0.0\\jakarta.authentication-api-3.0.0.jar",
+            "C:\\Users\\angel\\.m2\\repository\\jakarta\\security\\enterprise\\jakarta.security.enterprise-api\\3.0.0\\jakarta.security.enterprise-api-3.0.0.jar"
+        ],
+        "out": "E:\\XAIHT\\Kyber\\target",
+        "classesDir": "E:\\XAIHT\\Kyber\\target\\classes",
+        "resources": [
+            "E:\\XAIHT\\Kyber\\src\\main\\resources"
+        ],
+        "java": {
+            "options": [
+                "-g",
+                "--release",
+                "17",
+                "-encoding",
+                "UTF-8"
+            ]
+        },
+        "test": {
+            "frameworks": [
+                {
+                    "names": [
+                        "com.novocode.junit.JUnitFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.scalatest.tools.Framework",
+                        "org.scalatest.tools.ScalaTestFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.scalacheck.ScalaCheckFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.specs.runner.SpecsFramework",
+                        "org.specs2.runner.Specs2Framework",
+                        "org.specs2.runner.SpecsFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "utest.runner.Framework"
+                    ]
+                },
+                {
+                    "names": [
+                        "munit.Framework"
+                    ]
+                },
+                {
+                    "names": [
+                        "mill.testng.TestNGFramework"
+                    ]
+                }
+            ],
+            "options": {
+                "excludes": [
+                    
+                ],
+                "arguments": [
+                    {
+                        "args": [
+                            "-v",
+                            "-a"
+                        ],
+                        "framework": {
+                            "names": [
+                                "com.novocode.junit.JUnitFramework"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "platform": {
+            "name": "jvm",
+            "config": {
+                "home": "D:\\jdk-21",
+                "options": [
+                    
+                ]
+            },
+            "mainClass": [
+                
+            ]
+        },
+        "resolution": {
+            "modules": [
+                {
+                    "organization": "jakarta.servlet.jsp",
+                    "name": "jakarta.servlet.jsp-api",
+                    "version": "3.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.servlet.jsp-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jakarta.servlet.jsp-api\\3.1.0\\jakarta.servlet.jsp-api-3.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.servlet.jsp-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jakarta.servlet.jsp-api\\3.1.0\\jakarta.servlet.jsp-api-3.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.platform",
+                    "name": "jakarta.jakartaee-web-api",
+                    "version": "10.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.jakartaee-web-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\platform\\jakarta.jakartaee-web-api\\10.0.0\\jakarta.jakartaee-web-api-10.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.jakartaee-web-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\platform\\jakarta.jakartaee-web-api\\10.0.0\\jakarta.jakartaee-web-api-10.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.faces",
+                    "name": "jakarta.faces-api",
+                    "version": "4.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.faces-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\faces\\jakarta.faces-api\\4.0.1\\jakarta.faces-api-4.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.faces-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\faces\\jakarta.faces-api\\4.0.1\\jakarta.faces-api-4.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.security.enterprise",
+                    "name": "jakarta.security.enterprise-api",
+                    "version": "3.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.security.enterprise-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\security\\enterprise\\jakarta.security.enterprise-api\\3.0.0\\jakarta.security.enterprise-api-3.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.security.enterprise-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\security\\enterprise\\jakarta.security.enterprise-api\\3.0.0\\jakarta.security.enterprise-api-3.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.websocket",
+                    "name": "jakarta.websocket-client-api",
+                    "version": "2.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.websocket-client-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-client-api\\2.1.0\\jakarta.websocket-client-api-2.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.websocket-client-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-client-api\\2.1.0\\jakarta.websocket-client-api-2.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.transaction",
+                    "name": "jakarta.transaction-api",
+                    "version": "2.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.transaction-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\transaction\\jakarta.transaction-api\\2.0.1\\jakarta.transaction-api-2.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.transaction-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\transaction\\jakarta.transaction-api\\2.0.1\\jakarta.transaction-api-2.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.annotation",
+                    "name": "jakarta.annotation-api",
+                    "version": "2.1.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.annotation-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\annotation\\jakarta.annotation-api\\2.1.1\\jakarta.annotation-api-2.1.1.jar"
+                        },
+                        {
+                            "name": "jakarta.annotation-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\annotation\\jakarta.annotation-api\\2.1.1\\jakarta.annotation-api-2.1.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.persistence",
+                    "name": "jakarta.persistence-api",
+                    "version": "3.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.persistence-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\persistence\\jakarta.persistence-api\\3.1.0\\jakarta.persistence-api-3.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.persistence-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\persistence\\jakarta.persistence-api\\3.1.0\\jakarta.persistence-api-3.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.enterprise",
+                    "name": "jakarta.enterprise.cdi-api",
+                    "version": "4.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.enterprise.cdi-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.cdi-api\\4.0.1\\jakarta.enterprise.cdi-api-4.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.enterprise.cdi-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.cdi-api\\4.0.1\\jakarta.enterprise.cdi-api-4.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.json",
+                    "name": "jakarta.json-api",
+                    "version": "2.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.json-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\jakarta.json-api\\2.1.0\\jakarta.json-api-2.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.json-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\jakarta.json-api\\2.1.0\\jakarta.json-api-2.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.bouncycastle",
+                    "name": "bcprov-jdk18on",
+                    "version": "1.78.1.redhat-00002",
+                    "artifacts": [
+                        {
+                            "name": "bcprov-jdk18on",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\org\\bouncycastle\\bcprov-jdk18on\\1.78.1.redhat-00002\\bcprov-jdk18on-1.78.1.redhat-00002.jar"
+                        },
+                        {
+                            "name": "bcprov-jdk18on",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\org\\bouncycastle\\bcprov-jdk18on\\1.78.1.redhat-00002\\bcprov-jdk18on-1.78.1.redhat-00002-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.hamcrest",
+                    "name": "hamcrest-core",
+                    "version": "1.3",
+                    "artifacts": [
+                        {
+                            "name": "hamcrest-core",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\org\\hamcrest\\hamcrest-core\\1.3\\hamcrest-core-1.3.jar"
+                        },
+                        {
+                            "name": "hamcrest-core",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\org\\hamcrest\\hamcrest-core\\1.3\\hamcrest-core-1.3-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.enterprise",
+                    "name": "jakarta.enterprise.lang-model",
+                    "version": "4.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.enterprise.lang-model",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.lang-model\\4.0.1\\jakarta.enterprise.lang-model-4.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.enterprise.lang-model",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\enterprise\\jakarta.enterprise.lang-model\\4.0.1\\jakarta.enterprise.lang-model-4.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.validation",
+                    "name": "jakarta.validation-api",
+                    "version": "3.0.2",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.validation-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\validation\\jakarta.validation-api\\3.0.2\\jakarta.validation-api-3.0.2.jar"
+                        },
+                        {
+                            "name": "jakarta.validation-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\validation\\jakarta.validation-api\\3.0.2\\jakarta.validation-api-3.0.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.websocket",
+                    "name": "jakarta.websocket-api",
+                    "version": "2.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.websocket-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-api\\2.1.0\\jakarta.websocket-api-2.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.websocket-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\websocket\\jakarta.websocket-api\\2.1.0\\jakarta.websocket-api-2.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.json.bind",
+                    "name": "jakarta.json.bind-api",
+                    "version": "3.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.json.bind-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\bind\\jakarta.json.bind-api\\3.0.0\\jakarta.json.bind-api-3.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.json.bind-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\json\\bind\\jakarta.json.bind-api\\3.0.0\\jakarta.json.bind-api-3.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.ws.rs",
+                    "name": "jakarta.ws.rs-api",
+                    "version": "3.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.ws.rs-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\ws\\rs\\jakarta.ws.rs-api\\3.1.0\\jakarta.ws.rs-api-3.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.ws.rs-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\ws\\rs\\jakarta.ws.rs-api\\3.1.0\\jakarta.ws.rs-api-3.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.authentication",
+                    "name": "jakarta.authentication-api",
+                    "version": "3.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.authentication-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\authentication\\jakarta.authentication-api\\3.0.0\\jakarta.authentication-api-3.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.authentication-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\authentication\\jakarta.authentication-api\\3.0.0\\jakarta.authentication-api-3.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.servlet.jsp.jstl",
+                    "name": "jakarta.servlet.jsp.jstl-api",
+                    "version": "3.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.servlet.jsp.jstl-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jstl\\jakarta.servlet.jsp.jstl-api\\3.0.0\\jakarta.servlet.jsp.jstl-api-3.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.servlet.jsp.jstl-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jsp\\jstl\\jakarta.servlet.jsp.jstl-api\\3.0.0\\jakarta.servlet.jsp.jstl-api-3.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.interceptor",
+                    "name": "jakarta.interceptor-api",
+                    "version": "2.1.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.interceptor-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\interceptor\\jakarta.interceptor-api\\2.1.0\\jakarta.interceptor-api-2.1.0.jar"
+                        },
+                        {
+                            "name": "jakarta.interceptor-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\interceptor\\jakarta.interceptor-api\\2.1.0\\jakarta.interceptor-api-2.1.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.inject",
+                    "name": "jakarta.inject-api",
+                    "version": "2.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.inject-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\inject\\jakarta.inject-api\\2.0.1\\jakarta.inject-api-2.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.inject-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\inject\\jakarta.inject-api\\2.0.1\\jakarta.inject-api-2.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "junit",
+                    "name": "junit",
+                    "version": "4.13.2",
+                    "artifacts": [
+                        {
+                            "name": "junit",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\junit\\junit\\4.13.2\\junit-4.13.2.jar"
+                        },
+                        {
+                            "name": "junit",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\junit\\junit\\4.13.2\\junit-4.13.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.el",
+                    "name": "jakarta.el-api",
+                    "version": "5.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.el-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\el\\jakarta.el-api\\5.0.1\\jakarta.el-api-5.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.el-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\el\\jakarta.el-api\\5.0.1\\jakarta.el-api-5.0.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.servlet",
+                    "name": "jakarta.servlet-api",
+                    "version": "6.0.0",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.servlet-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jakarta.servlet-api\\6.0.0\\jakarta.servlet-api-6.0.0.jar"
+                        },
+                        {
+                            "name": "jakarta.servlet-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\servlet\\jakarta.servlet-api\\6.0.0\\jakarta.servlet-api-6.0.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.ejb",
+                    "name": "jakarta.ejb-api",
+                    "version": "4.0.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.ejb-api",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\ejb\\jakarta.ejb-api\\4.0.1\\jakarta.ejb-api-4.0.1.jar"
+                        },
+                        {
+                            "name": "jakarta.ejb-api",
+                            "classifier": "sources",
+                            "path": "C:\\Users\\angel\\.m2\\repository\\jakarta\\ejb\\jakarta.ejb-api\\4.0.1\\jakarta.ejb-api-4.0.1-sources.jar"
+                        }
+                    ]
+                }
+            ]
+        },
+        "tags": [
+            "library"
+        ]
+    }
+}

@@ -37,3 +37,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Metals ###
+.metals/
+.metals-dependencies/
+.metals-sbt/
+.metals-vscode/
