@@ -242,7 +242,8 @@ The pipeline performs these steps:
 4. Builds a fresh `xaiht-kyber:latest` image.
 5. Starts the refreshed container locally on port `8080`.
 6. Applies `kubernetes-deployment.yaml` again.
-7. Waits for `xaiht-kyber-deployment` to finish rolling out.
+7. Polls `xaiht-kyber-deployment` until all desired replicas are updated and available.
+8. Dumps deployment, pod, and container diagnostics before failing if Kubernetes never reaches readiness.
 
 Jenkins agent requirements:
 
@@ -251,6 +252,7 @@ Jenkins agent requirements:
 - Kubernetes CLI `kubectl` available on `PATH`
 - access to the target Docker daemon
 - access to the target Kubernetes context
+- enough time for the image pull and Payara startup sequence to complete before the Jenkins timeout window closes
 
 The pipeline does not create TLS secrets and does not expect certificate files. That is intentional.
 
@@ -561,6 +563,27 @@ Most likely causes:
 - the Jenkins service account cannot access the Docker daemon
 - another process is already using local port `8080`
 - `kubectl` is missing or points to the wrong cluster context
+
+### "The Jenkins job fails while waiting for Kubernetes rollout"
+
+Most likely causes:
+
+- the cluster cannot see the locally built image `xaiht-kyber:latest`
+- the application needs longer than the previous timeout once image pull and Payara startup are included
+- the Jenkins agent has intermittent connectivity to the Kubernetes API server, so a long-lived watch stream becomes unreliable
+
+Check with:
+
+```powershell
+kubectl get deployment xaiht-kyber-deployment -n default -o wide
+kubectl get pods -n default -l app=xaiht-kyber -o wide
+kubectl describe pod -n default -l app=xaiht-kyber
+kubectl logs -n default -l app=xaiht-kyber --all-containers=true --tail=200
+```
+
+Practical note:
+
+- the Jenkins pipeline now polls deployment status instead of depending on `kubectl rollout status`, because the startup probe already allows up to 180 seconds and transient API watch failures were causing false negatives
 
 ### "Decrypt or verify fails even though the values look correct"
 
