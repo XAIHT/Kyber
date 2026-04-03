@@ -16,7 +16,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <jakarta.ee.version>10.0.0</jakarta.ee.version>
     <bouncycastle.version>1.78.1.redhat-00002</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
@@ -65,14 +65,14 @@
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
-            <id>enforce-java-17-or-newer</id>
+            <id>enforce-java-21-or-newer</id>
             <goals>
               <goal>enforce</goal>
             </goals>
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[17,)</version>
+                  <version>[21,)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>

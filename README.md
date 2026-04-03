@@ -1,6 +1,6 @@
 # XaihtKyber
 
-[![Java 17+](https://img.shields.io/badge/Java-17%2B-0b5fff?style=for-the-badge)](https://www.oracle.com/java/)
+[![Java 21+](https://img.shields.io/badge/Java-21%2B-0b5fff?style=for-the-badge)](https://www.oracle.com/java/)
 [![Maven WAR](https://img.shields.io/badge/Maven-WAR-b14e2d?style=for-the-badge)](https://maven.apache.org/)
 [![Jakarta EE 10](https://img.shields.io/badge/Jakarta_EE-10-1a7f4b?style=for-the-badge)](https://jakarta.ee/)
 
@@ -25,7 +25,7 @@ This is the minimum practical stack for working on the project safely:
 
 | Component | Required | Why |
 | --- | --- | --- |
-| JDK | Java 17 or newer | `pom.xml` compiles with `maven.compiler.release=17` and enforces Java `[17,)` |
+| JDK | Java 21 or newer | `pom.xml` compiles with `maven.compiler.release=21` and enforces Java `[21,)` |
 | Maven | Maven 3.9+ recommended | There is no Maven Wrapper in this repository |
 | Application server | GlassFish 7 recommended | The app depends on Jakarta EE 10 web APIs, JSP, and CDI |
 | Alternative server | Payara 6 or another Jakarta EE 10 Web Profile runtime | Safe alternative if it provides Servlet 6, JSP, and CDI |
@@ -33,7 +33,7 @@ This is the minimum practical stack for working on the project safely:
 Read this carefully:
 
 - Use a JDK, not a JRE.
-- Java 17 is the baseline target. Newer JDKs can work as long as they can build Java 17 code.
+- Java 21 is the baseline target. Later JDKs may work, but the project is configured and verified against Java 21.
 - A plain servlet container is not the safest assumption here.
 - The project uses `jakarta.jakartaee-web-api` with `provided` scope and injects services with CDI (`@Inject`), so a Jakarta EE 10 Web Profile server is the correct runtime target.
 - There is no embedded server and no `main()` entry point. You build a WAR and deploy it to an application server.
@@ -44,7 +44,7 @@ These facts were confirmed from the codebase:
 
 - Packaging: `war`
 - Final artifact: `target/XaihtKyber.war`
-- Java release target: `17`
+- Java release target: `21`
 - Jakarta API dependency: `jakarta.jakartaee-web-api:10.0.0` with `provided` scope
 - PQC provider: `org.bouncycastle:bcprov-jdk18on:1.78.1.redhat-00002`
 - Welcome page: `index.jsp`
@@ -95,7 +95,7 @@ mvn -version
 You want to see:
 
 - `javac` available
-- Java 17 or newer
+- Java 21 or newer
 - Maven available on `PATH`
 
 If `javac` is missing, you are using a JRE or your `JAVA_HOME` is wrong.
@@ -127,11 +127,47 @@ target/XaihtKyber.war
 
 If `mvn clean package` succeeds, the project has compiled correctly.
 
+## Run With Docker
+
+This repository includes a multi-stage Dockerfile that builds the WAR with Maven
+and runs it on Payara Server Web Profile 6.
+
+Why this image:
+
+- `payara/server-web` matches the Jakarta EE Web Profile requirements of this app
+- the Payara 6 line is aligned with Jakarta EE 10
+- the image runs the server as the non-root `payara` user
+- only the application HTTP port needs to be exposed for normal use
+
+Build the image:
+
+```powershell
+docker build -t xaiht-kyber .
+```
+
+Run the container:
+
+```powershell
+docker run --rm -p 8080:8080 xaiht-kyber
+```
+
+Then open:
+
+```text
+http://localhost:8080/XaihtKyber/
+```
+
+Operational note:
+
+- The Dockerfile does not expose Payara admin port `4848`.
+- Keep it that way unless you explicitly need remote administration.
+- If you later publish this image, pin the base image by digest for stronger supply-chain control.
+
 ## Quick Start For New Developers
 
 If you want the shortest correct path:
 
-1. Install JDK 17.
+1. Install JDK 21.
 2. Install Maven 3.9+.
 3. Install GlassFish 7.
 4. Confirm `java`, `javac`, and `mvn` work from the terminal.
@@ -167,13 +203,13 @@ The context path is derived from the WAR name, so `XaihtKyber.war` becomes `Xaih
 mvn clean package
 ```
 
-2. Copy it into the domain autodeploy folder:
+1. Copy it into the domain autodeploy folder:
 
 ```powershell
 Copy-Item .\target\XaihtKyber.war "C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy\"
 ```
 
-3. Start the domain if needed, then open:
+1. Start the domain if needed, then open:
 
 ```text
 http://localhost:8080/XaihtKyber/
@@ -392,7 +428,7 @@ Most likely causes:
 
 - `JAVA_HOME` points to a JRE or wrong JDK
 - `javac` is not on `PATH`
-- Java version is below 17
+- Java version is below 21
 
 ### "The auto-deploy profile cannot find GlassFish"
 

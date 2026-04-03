@@ -45,7 +45,7 @@
             "options": [
                 "-g",
                 "--release",
-                "17",
+                "21",
                 "-encoding",
                 "UTF-8"
             ]
