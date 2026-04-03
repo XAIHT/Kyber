@@ -1,0 +1,12 @@
+.git
+.idea
+.vscode
+.bloop
+.metals
+target
+
+README.md
+LICENSE
+
+dependency-check-report.html
+**/dependency-check-report.html

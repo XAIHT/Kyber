@@ -25,7 +25,7 @@ This is the minimum practical stack for working on the project safely:
 
 | Component | Required | Why |
 | --- | --- | --- |
-| JDK | Java 21 or newer | `pom.xml` compiles with `maven.compiler.release=21` and enforces Java `[21,)` |
+| JDK | Java 21 or newer | `pom.xml` compiles with `maven.compiler.release=21` and the enforcer plugin requires Java `[21,)` |
 | Maven | Maven 3.9+ recommended | There is no Maven Wrapper in this repository |
 | Application server | GlassFish 7 recommended | The app depends on Jakarta EE 10 web APIs, JSP, and CDI |
 | Alternative server | Payara 6 or another Jakarta EE 10 Web Profile runtime | Safe alternative if it provides Servlet 6, JSP, and CDI |
@@ -45,6 +45,7 @@ These facts were confirmed from the codebase:
 - Packaging: `war`
 - Final artifact: `target/XaihtKyber.war`
 - Java release target: `21`
+- Docker build stage: `maven:3.9.11-eclipse-temurin-21`
 - Jakarta API dependency: `jakarta.jakartaee-web-api:10.0.0` with `provided` scope
 - PQC provider: `org.bouncycastle:bcprov-jdk18on:1.78.1.redhat-00002`
 - Welcome page: `index.jsp`
@@ -59,8 +60,8 @@ Local verification performed in this workspace:
 
 - Maven `3.9.12`
 - JDK `21.0.6`
-- `mvn test` passed
-- `mvn package` passed
+- `mvn clean test` passed
+- `mvn clean package` passed
 - The WAR was produced at `target/XaihtKyber.war`
 
 ## Project Layout
@@ -131,6 +132,9 @@ If `mvn clean package` succeeds, the project has compiled correctly.
 
 This repository includes a multi-stage Dockerfile that builds the WAR with Maven
 and runs it on Payara Server Web Profile 6.
+
+The build stage uses JDK 21 via `maven:3.9.11-eclipse-temurin-21`, which matches
+the Maven baseline configured in `pom.xml`.
 
 Why this image:
 
@@ -203,13 +207,13 @@ The context path is derived from the WAR name, so `XaihtKyber.war` becomes `Xaih
 mvn clean package
 ```
 
-1. Copy it into the domain autodeploy folder:
+2. Copy it into the domain autodeploy folder:
 
 ```powershell
 Copy-Item .\target\XaihtKyber.war "C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy\"
 ```
 
-1. Start the domain if needed, then open:
+3. Start the domain if needed, then open:
 
 ```text
 http://localhost:8080/XaihtKyber/
