@@ -51,7 +51,10 @@ These facts were confirmed from the codebase:
 - Welcome page: `index.jsp`
 - CDI enabled: `src/main/webapp/WEB-INF/beans.xml`
 - Web descriptor version: Servlet `6.0`
+- Kubernetes deployment file: `kubernetes-deployment.yaml`
+- Jenkins pipeline file: `Jenkinsfile`
 - No database, message broker, or external secret store is required to compile or run the app
+- No certificate files or Kubernetes TLS secrets are required for the provided container deployment flow
 - Optional environment variables:
   - `GLASSFISH_HOME` for the `auto-deploy` Maven profile
   - `NVD_API_KEY` for faster OWASP Dependency-Check usage
@@ -167,9 +170,93 @@ Operational note:
 - Keep it that way unless you explicitly need remote administration.
 - If you later publish this image, pin the base image by digest for stronger supply-chain control.
 
+If you want the exact clean rebuild flow for local Docker, use this sequence:
+
+```powershell
+docker rm -f xaiht-kyber-app
+docker image rm -f xaiht-kyber:latest
+docker build -t xaiht-kyber:latest .
+docker run -d --name xaiht-kyber-app -p 8080:8080 xaiht-kyber:latest
+```
+
+Use this variant if you want Docker to remove the container automatically when you stop it:
+
+```powershell
+docker run --rm -p 8080:8080 xaiht-kyber:latest
+```
+
+## Deploy With Kubernetes
+
+This repository includes `kubernetes-deployment.yaml` for a simple Kubernetes deployment.
+
+What the manifest does:
+
+- creates one deployment named `xaiht-kyber-deployment`
+- runs the container image `xaiht-kyber:latest`
+- exposes the container on internal port `8080`
+- exposes the Kubernetes service on external port `9595`
+- uses TCP startup, readiness, and liveness probes so Payara can finish booting before Kubernetes treats the pod as unhealthy
+- does not mount certificates and does not require any TLS secret
+
+Before applying the manifest, build the image:
+
+```powershell
+docker build -t xaiht-kyber:latest .
+```
+
+Apply the manifest:
+
+```powershell
+kubectl apply -f kubernetes-deployment.yaml
+kubectl rollout status deployment/xaiht-kyber-deployment
+```
+
+Check the resulting resources:
+
+```powershell
+kubectl get deployment xaiht-kyber-deployment
+kubectl get pods -l app=xaiht-kyber
+kubectl get service xaiht-kyber-service
+```
+
+Access pattern:
+
+- service port: `9595`
+- container port: `8080`
+- application context path: `/XaihtKyber/`
+
+Important:
+
+- If your cluster cannot use a locally built image, push `xaiht-kyber:latest` to a registry and change the `image:` field in `kubernetes-deployment.yaml`.
+- The Kubernetes service port is not the same as the application context path. The port is `9595`; the path is still `/XaihtKyber/`.
+
+## Redeploy With Jenkins
+
+This repository includes a Windows-oriented `Jenkinsfile` that automates the rebuild and redeploy flow.
+
+The pipeline performs these steps:
+
+1. Deletes the Kubernetes resources defined in `kubernetes-deployment.yaml`.
+2. Stops and removes the old local Docker container `xaiht-kyber-app`.
+3. Removes existing local `xaiht-kyber` images.
+4. Builds a fresh `xaiht-kyber:latest` image.
+5. Starts the refreshed container locally on port `8080`.
+6. Applies `kubernetes-deployment.yaml` again.
+7. Waits for `xaiht-kyber-deployment` to finish rolling out.
+
+Jenkins agent requirements:
+
+- Windows agent
+- Docker installed and available on `PATH`
+- Kubernetes CLI `kubectl` available on `PATH`
+- access to the target Docker daemon
+- access to the target Kubernetes context
+
+The pipeline does not create TLS secrets and does not expect certificate files. That is intentional.
+
 ## Quick Start For New Developers
 
-If you want the shortest correct path:
+If you want the shortest correct path for a traditional WAR deployment:
 
 1. Install JDK 21.
 2. Install Maven 3.9+.
@@ -178,6 +265,13 @@ If you want the shortest correct path:
 5. Run `mvn clean package`.
 6. Deploy `target/XaihtKyber.war` to GlassFish 7.
 7. Open `http://localhost:8080/XaihtKyber/`.
+
+If you want the shortest containerized path instead:
+
+1. Install Docker.
+2. Build the image with `docker build -t xaiht-kyber:latest .`.
+3. Apply `kubectl apply -f kubernetes-deployment.yaml`.
+4. Reach the app through the service on port `9595` and the context path `/XaihtKyber/`.
 
 ## Set Up GlassFish 7
 
@@ -207,13 +301,13 @@ The context path is derived from the WAR name, so `XaihtKyber.war` becomes `Xaih
 mvn clean package
 ```
 
-2. Copy it into the domain autodeploy folder:
+1. Copy it into the domain autodeploy folder:
 
 ```powershell
 Copy-Item .\target\XaihtKyber.war "C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy\"
 ```
 
-3. Start the domain if needed, then open:
+1. Start the domain if needed, then open:
 
 ```text
 http://localhost:8080/XaihtKyber/
@@ -442,6 +536,32 @@ Most likely causes:
 - the domain name is not `domain1`
 - the autodeploy directory does not exist yet
 
+### "Kubernetes is running but the app is not reachable"
+
+Most likely causes:
+
+- the image in `kubernetes-deployment.yaml` does not exist in a registry your cluster can pull from
+- the pod is still starting and Payara has not finished booting yet
+- you are opening the service port without the `/XaihtKyber/` context path
+- your cluster does not provide an externally reachable `LoadBalancer` address
+
+Check with:
+
+```powershell
+kubectl get pods -l app=xaiht-kyber
+kubectl describe pod -l app=xaiht-kyber
+kubectl get service xaiht-kyber-service
+```
+
+### "The Jenkins job fails during Docker cleanup or rebuild"
+
+Most likely causes:
+
+- Docker is not installed on the Jenkins agent
+- the Jenkins service account cannot access the Docker daemon
+- another process is already using local port `8080`
+- `kubectl` is missing or points to the wrong cluster context
+
 ### "Decrypt or verify fails even though the values look correct"
 
 Check all of these:
@@ -461,7 +581,7 @@ Check all of these:
 
 ## In Short
 
-If you only need the essential instructions:
+If you only need the essential instructions for GlassFish:
 
 ```powershell
 mvn clean package
@@ -475,3 +595,13 @@ http://localhost:8080/XaihtKyber/
 ```
 
 That is the intended local developer path for this repository.
+
+If you only need the essential instructions for Kubernetes:
+
+```powershell
+docker build -t xaiht-kyber:latest .
+kubectl apply -f kubernetes-deployment.yaml
+kubectl rollout status deployment/xaiht-kyber-deployment
+```
+
+If you only need the essential instructions for a full rebuild and redeploy in Jenkins, run the pipeline in `Jenkinsfile` on a Windows agent that has Docker and `kubectl` configured.

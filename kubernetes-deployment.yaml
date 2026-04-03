@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xaiht-kyber-deployment
+  labels:
+    app: xaiht-kyber
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xaiht-kyber
+  template:
+    metadata:
+      labels:
+        app: xaiht-kyber
+    spec:
+      containers:
+        - name: xaiht-kyber
+          image: xaiht-kyber:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xaiht-kyber-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: xaiht-kyber
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9595
+      targetPort: 8080
+
+# Build and publish an image before applying this manifest if the cluster
+# cannot access a local Docker image named xaiht-kyber:latest.
+#
+# Example:
+#   docker build -t xaiht-kyber:latest .
+#   kubectl apply -f kubernetes-deployment.yaml
