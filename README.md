@@ -3,623 +3,843 @@
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-0b5fff?style=for-the-badge)](https://www.oracle.com/java/)
 [![Maven WAR](https://img.shields.io/badge/Maven-WAR-b14e2d?style=for-the-badge)](https://maven.apache.org/)
 [![Jakarta EE 10](https://img.shields.io/badge/Jakarta_EE-10-1a7f4b?style=for-the-badge)](https://jakarta.ee/)
+[![Bouncy Castle PQC](https://img.shields.io/badge/Bouncy_Castle-PQC-7a341f?style=for-the-badge)](https://www.bouncycastle.org/)
+[![License GPLv3](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](./LICENSE)
 
-XaihtKyber is a Maven `war` project that exposes CRYSTALS-Kyber workflows through Jakarta Servlet + JSP pages.
+**XaihtKyber** is a production-oriented Java web application that exposes [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) post-quantum cryptographic operations through a Jakarta Servlet + JSP interface. It is built as a Maven WAR, backed by Bouncy Castle's PQC provider, and deployable to any Jakarta EE 10 Web Profile server (GlassFish 7, Payara 6, etc.).
 
-It provides:
+> **Post-Quantum Significance**: CRYSTALS-Kyber (ML-KEM) was selected by NIST in 2022 as the primary standard for post-quantum key encapsulation. Classical key-exchange algorithms (RSA, ECDH) are vulnerable to Shor's algorithm running on cryptographically relevant quantum computers. Kyber replaces those key-exchange primitives with lattice-based hardness assumptions that resist both classical and quantum attacks.
 
-- Kyber key generation
-- Buffer encryption with Kyber KEM + AES-256-GCM
-- Buffer decryption with Kyber decapsulation + AES-256-GCM
-- Receiver-authenticated integrity attestation with Kyber + HKDF + HMAC-SHA-256
-- Attestation verification with the matching Kyber private key
+---
 
-Important cryptographic note:
+## Table of Contents
 
-- Kyber is a KEM, not a digital signature algorithm.
-- The "signer/verifier" pages in this project implement two-party integrity attestation, not third-party verifiable signatures.
+- [What It Does](#what-it-does)
+- [Project Structure](#project-structure)
+  - [Architecture Overview](#architecture-overview)
+  - [Directory Layout](#directory-layout)
+  - [Layer-by-Layer Breakdown](#layer-by-layer-breakdown)
+- [How the Post-Quantum Kyber Procedures Work](#how-the-post-quantum-kyber-procedures-work)
+  - [Kyber Key Generation](#1-kyber-key-generation)
+  - [Kyber KEM + AES-GCM Encryption](#2-kyber-kem--aes-gcm-encryption-buffer-cipher)
+  - [Kyber KEM + AES-GCM Decryption](#3-kyber-kem--aes-gcm-decryption-buffer-decipher)
+  - [Kyber Attestation (Integrity Binding)](#4-kyber-attestation-integrity-binding)
+  - [Kyber Attestation Verification](#5-kyber-attestation-verification)
+  - [Cryptographic Design Decisions](#cryptographic-design-decisions)
+- [Integrating XaihtKyber Into Your Own Projects](#integrating-xaihtkyber-into-your-own-projects)
+  - [What You Can Reuse](#what-you-can-reuse)
+  - [Step 1 – Add Dependencies](#step-1--add-dependencies)
+  - [Step 2 – Copy the Reusable Packages](#step-2--copy-the-reusable-packages)
+  - [Step 3 – Generate Keys](#step-3--generate-keys)
+  - [Step 4 – Encrypt Data](#step-4--encrypt-data)
+  - [Step 5 – Decrypt Data](#step-5--decrypt-data)
+  - [Step 6 – Attest Payload Integrity](#step-6--attest-payload-integrity)
+  - [Step 7 – Verify an Attestation](#step-7--verify-an-attestation)
+  - [Standalone Java Usage (No Jakarta EE)](#standalone-java-usage-no-jakarta-ee)
+  - [Spring Boot Integration](#spring-boot-integration)
+  - [Serializing Envelopes for Wire Transfer](#serializing-envelopes-for-wire-transfer)
+  - [Key Storage Recommendations](#key-storage-recommendations)
+- [Prerequisites](#prerequisites)
+- [Build and Test](#build-and-test)
+- [Running the Application](#running-the-application)
+  - [GlassFish 7 Deployment](#glassfish-7-deployment)
+  - [Docker](#docker)
+  - [Kubernetes](#kubernetes)
+  - [Jenkins CI/CD](#jenkins-cicd)
+- [Pages and Endpoints](#pages-and-endpoints)
+- [Security Considerations](#security-considerations)
+- [Maven Profiles](#maven-profiles)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
-## What A Developer Needs
+---
 
-This is the minimum practical stack for working on the project safely:
+## What It Does
 
-| Component | Required | Why |
-| --- | --- | --- |
-| JDK | Java 21 or newer | `pom.xml` compiles with `maven.compiler.release=21` and the enforcer plugin requires Java `[21,)` |
-| Maven | Maven 3.9+ recommended | There is no Maven Wrapper in this repository |
-| Application server | GlassFish 7 recommended | The app depends on Jakarta EE 10 web APIs, JSP, and CDI |
-| Alternative server | Payara 6 or another Jakarta EE 10 Web Profile runtime | Safe alternative if it provides Servlet 6, JSP, and CDI |
+XaihtKyber provides five post-quantum cryptographic workflows via a web UI and reusable Java service classes:
 
-Read this carefully:
+| Workflow | Algorithm Stack | Description |
+|---|---|---|
+| **Key Generation** | CRYSTALS-Kyber (512/768/1024) | Generates X.509 public & PKCS#8 private key pairs with SHA-256 fingerprints |
+| **Buffer Cipher** | Kyber KEM → AES-256-GCM | Encrypts arbitrary plaintext using a Kyber-derived session key |
+| **Buffer Decipher** | Kyber KEM → AES-256-GCM | Decrypts the cipher envelope using the recipient's private key |
+| **Attestation** | Kyber KEM → HKDF-SHA-256 → HMAC-SHA-256 | Binds a payload to a shared secret for receiver-authenticated integrity |
+| **Verification** | Kyber KEM → HKDF-SHA-256 → HMAC-SHA-256 | Verifies the integrity attestation using the matching private key |
 
-- Use a JDK, not a JRE.
-- Java 21 is the baseline target. Later JDKs may work, but the project is configured and verified against Java 21.
-- A plain servlet container is not the safest assumption here.
-- The project uses `jakarta.jakartaee-web-api` with `provided` scope and injects services with CDI (`@Inject`), so a Jakarta EE 10 Web Profile server is the correct runtime target.
-- There is no embedded server and no `main()` entry point. You build a WAR and deploy it to an application server.
+> **Important**: Kyber is a Key Encapsulation Mechanism (KEM), not a digital signature algorithm. The "signer/verifier" workflow implements **two-party integrity attestation** (only the holder of the matching private key can verify), not publicly verifiable digital signatures. For public signatures, use CRYSTALS-Dilithium, Falcon, or SPHINCS+.
 
-## Verified From The Repository
+---
 
-These facts were confirmed from the codebase:
+## Project Structure
 
-- Packaging: `war`
-- Final artifact: `target/XaihtKyber.war`
-- Java release target: `21`
-- Docker build stage: `maven:3.9.11-eclipse-temurin-21`
-- Jakarta API dependency: `jakarta.jakartaee-web-api:10.0.0` with `provided` scope
-- PQC provider: `org.bouncycastle:bcprov-jdk18on:1.78.1.redhat-00002`
-- Welcome page: `index.jsp`
-- CDI enabled: `src/main/webapp/WEB-INF/beans.xml`
-- Web descriptor version: Servlet `6.0`
-- Kubernetes deployment file: `kubernetes-deployment.yaml`
-- Jenkins pipeline file: `Jenkinsfile`
-- No database, message broker, or external secret store is required to compile or run the app
-- No certificate files or Kubernetes TLS secrets are required for the provided container deployment flow
-- Optional environment variables:
-  - `GLASSFISH_HOME` for the `auto-deploy` Maven profile
-  - `NVD_API_KEY` for faster OWASP Dependency-Check usage
+### Architecture Overview
 
-Local verification performed in this workspace:
+```mermaid
+graph TB
+    subgraph "Web Layer (com.xaiht.kyber.web)"
+        A[BaseKyberServlet] --> B[KeyGenerationServlet<br>POST /keys/generate]
+        A --> C[BufferCipherServlet<br>POST /buffer/cipher]
+        A --> D[BufferDecipherServlet<br>POST /buffer/decipher]
+        A --> E[KyberSignerServlet<br>POST /attestation/sign]
+        A --> F[KyberSignVerifierServlet<br>POST /attestation/verify]
+        G[ServletSupport<br>CSRF, validation, headers]
+    end
+    subgraph "Service Layer (com.xaiht.kyber.service)"
+        H[KyberKeyService]
+        I[KyberCipherService]
+        J[KyberAttestationService]
+    end
+    subgraph "Crypto Layer (com.xaiht.kyber.crypto)"
+        K[PostQuantumProviderRegistry]
+        L[KyberSecurityLevel]
+        M[KyberKeyMaterial]
+        N[CipherEnvelope]
+        O[AttestationEnvelope]
+        P[VerificationResult]
+        Q[CryptoOperationException]
+        R[ValidationException]
+    end
+    subgraph "External"
+        S[Bouncy Castle PQC Provider]
+        T[JCA / JCE]
+    end
+    B --> H
+    C --> I
+    D --> I
+    E --> J
+    F --> J
+    I --> H
+    J --> H
+    H --> K
+    I --> K
+    J --> K
+    K --> S
+    S --> T
+```
 
-- Maven `3.9.12`
-- JDK `21.0.6`
-- `mvn clean test` passed
-- `mvn clean package` passed
-- The WAR was produced at `target/XaihtKyber.war`
+The application follows a strict **three-layer architecture**:
 
-## Project Layout
+1. **Crypto Layer** – Immutable data carriers (envelopes, key material), enums, exceptions, and the Bouncy Castle PQC provider singleton.
+2. **Service Layer** – Stateless business logic for all cryptographic operations. Each service is a CDI-managed bean (`@Dependent`). This layer is **fully reusable** outside the web context.
+3. **Web Layer** – Jakarta Servlet endpoints that parse HTTP form parameters, delegate to service beans, and forward to JSP views.
+
+### Directory Layout
 
 ```text
-src/
-├─ main/
-│  ├─ java/com/xaiht/kyber/
-│  │  ├─ crypto/   # envelopes, enums, validation, provider registry
-│  │  ├─ service/  # key generation, cipher, attestation logic
-│  │  └─ web/      # servlets and servlet helpers
-│  └─ webapp/
-│     ├─ *.jsp
-│     ├─ assets/
-│     └─ WEB-INF/
-└─ test/
-   └─ java/com/xaiht/kyber/service/
+XaihtKyber/
+├── pom.xml                         # Maven build: Java 21, WAR packaging, BouncyCastle PQC
+├── Dockerfile                      # Multi-stage: Maven build → Payara 6 runtime
+├── Jenkinsfile                     # CI/CD pipeline: Docker rebuild + K8s redeploy
+├── kubernetes-deployment.yaml      # Deployment + LoadBalancer Service (port 9595→8080)
+├── LICENSE                         # GPLv3
+│
+└── src/
+    ├── main/
+    │   ├── java/com/xaiht/kyber/
+    │   │   ├── crypto/                          # ← CRYPTO LAYER
+    │   │   │   ├── PostQuantumProviderRegistry.java   # Singleton BC PQC provider
+    │   │   │   ├── KyberSecurityLevel.java            # Enum: 512, 768, 1024
+    │   │   │   ├── KyberKeyMaterial.java               # Key pair data carrier
+    │   │   │   ├── CipherEnvelope.java                 # Encryption output envelope
+    │   │   │   ├── AttestationEnvelope.java             # Attestation output envelope
+    │   │   │   ├── VerificationResult.java              # Verification outcome
+    │   │   │   ├── CryptoOperationException.java        # Crypto failure (unchecked)
+    │   │   │   └── ValidationException.java             # Input validation failure (unchecked)
+    │   │   │
+    │   │   ├── service/                         # ← SERVICE LAYER (reusable)
+    │   │   │   ├── KyberKeyService.java               # Key generation, encode/decode, fingerprint
+    │   │   │   ├── KyberCipherService.java            # KEM + AES-GCM encrypt/decrypt
+    │   │   │   └── KyberAttestationService.java       # KEM + HKDF + HMAC attest/verify
+    │   │   │
+    │   │   └── web/                             # ← WEB LAYER (servlet-specific)
+    │   │       ├── BaseKyberServlet.java               # Abstract base: GET→JSP, error handling
+    │   │       ├── ServletSupport.java                  # CSRF, headers, parameter validation
+    │   │       ├── KeyGenerationServlet.java            # POST /keys/generate
+    │   │       ├── BufferCipherServlet.java             # POST /buffer/cipher
+    │   │       ├── BufferDecipherServlet.java           # POST /buffer/decipher
+    │   │       ├── KyberSignerServlet.java              # POST /attestation/sign
+    │   │       └── KyberSignVerifierServlet.java        # POST /attestation/verify
+    │   │
+    │   └── webapp/
+    │       ├── index.jsp                          # Landing page
+    │       ├── key-generator.jsp                  # Key generation form + results
+    │       ├── buffer-cipher.jsp                  # Encrypt form + cipher envelope display
+    │       ├── buffer-decipher.jsp                 # Decrypt form + plaintext recovery
+    │       ├── kyber-signer.jsp                   # Attestation form + envelope display
+    │       ├── kyber-sign-verifier.jsp             # Verification form + result display
+    │       ├── assets/app.css                     # Application stylesheet
+    │       └── WEB-INF/
+    │           ├── web.xml                        # Servlet 6.0 descriptor
+    │           ├── beans.xml                      # CDI 4.0 (annotated discovery)
+    │           └── jspf/helpers.jspf              # XSS-safe HTML escaping helpers
+    │
+    └── test/java/com/xaiht/kyber/service/
+        ├── KyberCipherServiceTest.java            # Round-trip cipher at all 3 levels
+        └── KyberAttestationServiceTest.java       # Attestation verify + tamper rejection
 ```
 
-## Compile The Project
+### Layer-by-Layer Breakdown
 
-### 1. Check your toolchain
+#### Crypto Layer (`com.xaiht.kyber.crypto`)
 
-On Windows PowerShell:
+This package contains **no business logic**. It defines:
+
+| Class | Role |
+|---|---|
+| `PostQuantumProviderRegistry` | Thread-safe singleton that lazily initializes a `BouncyCastlePQCProvider`. All service classes reference this single instance to ensure consistent JCA algorithm registration. |
+| `KyberSecurityLevel` | Enum mapping `Kyber-512`, `Kyber-768`, and `Kyber-1024` to their `KyberParameterSpec` constants. Supports parsing from form values (`"512"`, `"Kyber512"`, etc.) and from decoded `KyberKey` instances. |
+| `KyberKeyMaterial` | Immutable data carrier for a generated key pair: security level, Base64 public key, Base64 private key, and a 12-byte hex fingerprint. |
+| `CipherEnvelope` | Immutable data carrier for the output of an encryption operation: security level, recipient fingerprint, Base64 encapsulation, Base64 IV, Base64 ciphertext, and Base64 AAD. |
+| `AttestationEnvelope` | Immutable data carrier for an attestation: security level, verifier fingerprint, Base64 encapsulation, Base64 MAC, and Base64 context. |
+| `VerificationResult` | Immutable data carrier for a verification outcome: security level, verifier fingerprint, boolean verified flag, and the computed MAC for diagnostics. |
+| `CryptoOperationException` | Unchecked exception wrapping JCA/BC failures during cryptographic operations. |
+| `ValidationException` | Unchecked exception for input validation failures (missing keys, bad Base64, security level mismatch). |
+
+#### Service Layer (`com.xaiht.kyber.service`)
+
+This is the **core of the cryptographic logic** and is fully reusable:
+
+| Class | Responsibility |
+|---|---|
+| `KyberKeyService` | Generates Kyber key pairs at any supported security level. Encodes keys to Base64, decodes from Base64/PEM, validates security level of decoded keys, and computes SHA-256 fingerprints (first 12 bytes, hex-encoded). |
+| `KyberCipherService` | Performs the full KEM→AES-256-GCM encrypt/decrypt pipeline. Encapsulates a shared secret against the recipient's public key, derives a 256-bit AES key, encrypts with `AES/GCM/NoPadding` (12-byte IV, 128-bit auth tag), and returns a `CipherEnvelope`. Decryption reverses the process using `KEMExtractSpec`. |
+| `KyberAttestationService` | Performs the KEM→HKDF-SHA-256→HMAC-SHA-256 attestation pipeline. Encapsulates a shared secret, derives a 256-bit MAC key via HKDF with `"XaihtKyber-Attestation|<context>"` as info, computes `HMAC-SHA-256(payload ‖ 0x00 ‖ context)`, and packages the result as an `AttestationEnvelope`. Verification uses constant-time `MessageDigest.isEqual()`. |
+
+All services:
+- Use CDI `@Dependent` scope (new instance per injection point)
+- Provide a no-arg constructor for standalone (non-CDI) usage
+- Wipe secret key material from byte arrays in `finally` blocks
+
+#### Web Layer (`com.xaiht.kyber.web`)
+
+This layer is **specific to the servlet container** and not needed for library reuse:
+
+| Class | Responsibility |
+|---|---|
+| `BaseKyberServlet` | Abstract base servlet providing common patterns: `doGet` forwards to the JSP view, `forwardSuccess` returns results, `handleFailure` sets error attributes and logs. |
+| `ServletSupport` | Static utilities: CSRF token generation/validation via `HttpSession`, security response headers (CSP, no-cache, X-Frame-Options, etc.), parameter extraction with validation and size limits, root-cause unwinding for exceptions. |
+| `KeyGenerationServlet` | Mapped to `POST /keys/generate`. Parses security level, delegates to `KyberKeyService`, exposes `KyberKeyMaterial` to JSP. |
+| `BufferCipherServlet` | Mapped to `POST /buffer/cipher`. Parses public key + plaintext + AAD, delegates to `KyberCipherService.cipher()`, exposes `CipherEnvelope` to JSP. |
+| `BufferDecipherServlet` | Mapped to `POST /buffer/decipher`. Parses private key + envelope fields, delegates to `KyberCipherService.decipher()`, exposes recovered plaintext to JSP. |
+| `KyberSignerServlet` | Mapped to `POST /attestation/sign`. Parses public key + payload + context, delegates to `KyberAttestationService.attest()`, exposes `AttestationEnvelope` to JSP. |
+| `KyberSignVerifierServlet` | Mapped to `POST /attestation/verify`. Parses private key + payload + context + envelope, delegates to `KyberAttestationService.verify()`, exposes `VerificationResult` to JSP. |
+
+---
+
+## How the Post-Quantum Kyber Procedures Work
+
+### 1. Kyber Key Generation
+
+**Where**: `KyberKeyService.generateKeyPair()`
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant KyberKeyService
+    participant BC as Bouncy Castle PQC
+
+    Client->>KyberKeyService: generateKeyPair(KYBER_1024)
+    KyberKeyService->>BC: KeyPairGenerator.getInstance("KYBER", pqcProvider)
+    KyberKeyService->>BC: initialize(KyberParameterSpec.kyber1024, SecureRandom)
+    BC-->>KyberKeyService: KeyPair(publicKey, privateKey)
+    KyberKeyService->>KyberKeyService: Base64-encode public key (X.509 DER)
+    KyberKeyService->>KyberKeyService: Base64-encode private key (PKCS#8 DER)
+    KyberKeyService->>KyberKeyService: SHA-256(publicKey.encoded)[0:12] → hex fingerprint
+    KyberKeyService-->>Client: KyberKeyMaterial{level, pubB64, privB64, fingerprint}
+```
+
+**What happens cryptographically**:
+1. The `KeyPairGenerator` is initialized with one of three parameter sets: `kyber512`, `kyber768`, or `kyber1024`. These correspond to NIST security levels 1, 3, and 5 respectively.
+2. Bouncy Castle internally samples random polynomials from a centered binomial distribution over the ring `Zq[X]/(X^256 + 1)` where `q = 3329`, constructs a public matrix via `ρ` (seed), computes `t = A·s + e`, and outputs the serialized key pair.
+3. The public key is encoded in X.509 `SubjectPublicKeyInfo` DER format, and the private key in PKCS#8 `PrivateKeyInfo` DER format. Both are then Base64-encoded for transport.
+4. A **fingerprint** is computed as the first 12 bytes (24 hex characters) of `SHA-256(DER-encoded public key)`, used as a human-readable key identifier in envelopes.
+
+**Security levels explained**:
+
+| Level | Parameter Set | NIST Security | Classical Equivalent | Public Key Size | Shared Secret |
+|---|---|---|---|---|---|
+| Kyber-512 | `kyber512` | Level 1 | ~AES-128 | 800 bytes | 32 bytes |
+| Kyber-768 | `kyber768` | Level 3 | ~AES-192 | 1,184 bytes | 32 bytes |
+| Kyber-1024 | `kyber1024` | Level 5 | ~AES-256 | 1,568 bytes | 32 bytes |
+
+---
+
+### 2. Kyber KEM + AES-GCM Encryption (Buffer Cipher)
+
+**Where**: `KyberCipherService.cipher()`
+
+```mermaid
+sequenceDiagram
+    participant Sender
+    participant KyberCipherService
+    participant KyberKeyService
+    participant BC as Bouncy Castle PQC
+    participant JCA as Java Crypto (JCA)
+
+    Sender->>KyberCipherService: cipher(KYBER_1024, recipientPubKeyB64, plaintext, aad)
+    KyberCipherService->>KyberKeyService: decodePublicKey(pubKeyB64, KYBER_1024)
+    KyberKeyService-->>KyberCipherService: PublicKey (validated)
+
+    Note over KyberCipherService,BC: KEM Encapsulation
+    KyberCipherService->>BC: KeyGenerator("KYBER", pqcProvider)
+    KyberCipherService->>BC: init(KEMGenerateSpec(pubKey, "AES", 256))
+    BC-->>KyberCipherService: SecretKeyWithEncapsulation
+
+    Note over KyberCipherService: secretKey.getEncoded() → 32-byte AES key
+    Note over KyberCipherService: secretKey.getEncapsulation() → ciphertext of the KEM
+
+    Note over KyberCipherService,JCA: AES-256-GCM Encryption
+    KyberCipherService->>KyberCipherService: Generate 12-byte random IV
+    KyberCipherService->>JCA: Cipher("AES/GCM/NoPadding")
+    KyberCipherService->>JCA: init(ENCRYPT, aesKey, GCMParameterSpec(128, iv))
+    KyberCipherService->>JCA: updateAAD(aad)
+    JCA-->>KyberCipherService: ciphertext + 128-bit auth tag
+
+    KyberCipherService->>KyberCipherService: Wipe AES key bytes (Arrays.fill)
+    KyberCipherService-->>Sender: CipherEnvelope{level, fingerprint, encapsulation, iv, ciphertext, aad}
+```
+
+**Detailed step-by-step**:
+
+1. **Decode & Validate**: The recipient's public key is decoded from Base64/PEM and its security level is validated against the requested level.
+2. **KEM Encapsulation**: Using Bouncy Castle's `KEMGenerateSpec`, a fresh 256-bit AES shared secret is encapsulated against the recipient's Kyber public key. This produces:
+   - A **shared secret** (32 bytes) – used as the AES-256 key
+   - An **encapsulation** (ciphertext of the KEM) – must be sent to the recipient so they can decapsulate
+3. **IV Generation**: A cryptographically random 12-byte initialization vector is generated via `SecureRandom`.
+4. **AES-256-GCM Encryption**: The plaintext is encrypted using `AES/GCM/NoPadding` with:
+   - The 32-byte shared secret as the AES key
+   - The 12-byte IV
+   - A 128-bit authentication tag
+   - Optional Additional Authenticated Data (AAD) for channel binding
+5. **Key Wiping**: The AES key byte array is zeroed out in a `finally` block to minimize key exposure in memory.
+6. **Envelope Construction**: All outputs are Base64-encoded and bundled into a `CipherEnvelope`.
+
+---
+
+### 3. Kyber KEM + AES-GCM Decryption (Buffer Decipher)
+
+**Where**: `KyberCipherService.decipher()`
+
+```mermaid
+sequenceDiagram
+    participant Recipient
+    participant KyberCipherService
+    participant KyberKeyService
+    participant BC as Bouncy Castle PQC
+    participant JCA as Java Crypto (JCA)
+
+    Recipient->>KyberCipherService: decipher(level, privKeyB64, encaps, iv, ciphertext, aad)
+    KyberCipherService->>KyberKeyService: decodePrivateKey(privKeyB64, level)
+    KyberKeyService-->>KyberCipherService: PrivateKey (validated)
+
+    Note over KyberCipherService,BC: KEM Decapsulation
+    KyberCipherService->>BC: KeyGenerator("KYBER", pqcProvider)
+    KyberCipherService->>BC: init(KEMExtractSpec(privKey, encapsulation, "AES", 256))
+    BC-->>KyberCipherService: SecretKey (same 32-byte AES key)
+
+    Note over KyberCipherService,JCA: AES-256-GCM Decryption
+    KyberCipherService->>JCA: Cipher("AES/GCM/NoPadding")
+    KyberCipherService->>JCA: init(DECRYPT, aesKey, GCMParameterSpec(128, iv))
+    KyberCipherService->>JCA: updateAAD(aad)
+    JCA-->>KyberCipherService: plaintext (or AEADBadTagException on tamper)
+
+    KyberCipherService->>KyberCipherService: Wipe AES key bytes
+    KyberCipherService-->>Recipient: plaintext string
+```
+
+**Key point**: The same 32-byte shared secret is recovered by the recipient's private key through Kyber decapsulation (`KEMExtractSpec`). AES-GCM then validates both integrity (128-bit auth tag) and authenticity (AAD) before releasing the plaintext.
+
+---
+
+### 4. Kyber Attestation (Integrity Binding)
+
+**Where**: `KyberAttestationService.attest()`
+
+```mermaid
+sequenceDiagram
+    participant Attester
+    participant AttestationService
+    participant BC as Bouncy Castle PQC
+
+    Attester->>AttestationService: attest(level, verifierPubKeyB64, payload, context)
+
+    Note over AttestationService,BC: KEM Encapsulation (shared secret derivation)
+    AttestationService->>BC: KEMGenerateSpec(verifierPubKey, "AES", 256)
+    BC-->>AttestationService: SecretKeyWithEncapsulation (sharedSecret + encapsulation)
+
+    Note over AttestationService: HKDF Key Derivation
+    AttestationService->>AttestationService: info = "XaihtKyber-Attestation|" + context
+    AttestationService->>AttestationService: macKey = HKDF-SHA-256(sharedSecret, info) → 32 bytes
+
+    Note over AttestationService: HMAC Computation
+    AttestationService->>AttestationService: mac = HMAC-SHA-256(macKey, payload ‖ 0x00 ‖ context)
+
+    AttestationService->>AttestationService: Wipe sharedSecret + macKey
+    AttestationService-->>Attester: AttestationEnvelope{level, fingerprint, encapsulation, mac, context}
+```
+
+**Why this design**:
+- Kyber cannot produce digital signatures. It is a KEM that produces a shared secret known to both parties.
+- The shared secret is **not used directly** as a MAC key. Instead, it passes through **HKDF-SHA-256** (HMAC-based Key Derivation Function) with domain-separated info (`"XaihtKyber-Attestation|<context>"`) to produce a purpose-bound 256-bit MAC key.
+- The MAC is computed over `payload || 0x00 || context` where `0x00` is a separator byte that prevents ambiguity between payload and context boundaries.
+- This provides **receiver-authenticated integrity**: only the holder of the matching Kyber private key can verify the attestation.
+
+---
+
+### 5. Kyber Attestation Verification
+
+**Where**: `KyberAttestationService.verify()`
+
+```mermaid
+sequenceDiagram
+    participant Verifier
+    participant AttestationService
+    participant BC as Bouncy Castle PQC
+
+    Verifier->>AttestationService: verify(level, privKeyB64, payload, context, encaps, mac)
+
+    Note over AttestationService,BC: KEM Decapsulation
+    AttestationService->>BC: KEMExtractSpec(privKey, encapsulation, "AES", 256)
+    BC-->>AttestationService: SecretKey (same sharedSecret)
+
+    Note over AttestationService: Recompute MAC
+    AttestationService->>AttestationService: macKey = HKDF-SHA-256(sharedSecret, info)
+    AttestationService->>AttestationService: computedMac = HMAC-SHA-256(macKey, payload ‖ 0x00 ‖ context)
+
+    Note over AttestationService: Constant-time comparison
+    AttestationService->>AttestationService: MessageDigest.isEqual(expectedMac, computedMac)
+
+    AttestationService-->>Verifier: VerificationResult{level, fingerprint, verified, computedMac}
+```
+
+**Security note**: The MAC comparison uses `MessageDigest.isEqual()` which performs constant-time byte comparison, preventing timing side-channel attacks.
+
+---
+
+### Cryptographic Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| **Kyber as KEM, not signatures** | Kyber is mathematically a KEM (IND-CCA2 secure). Using it outside its intended primitive would be non-standard and potentially insecure. |
+| **AES-256-GCM for symmetric encryption** | Provides authenticated encryption with associated data (AEAD). The 128-bit auth tag guarantees both confidentiality and integrity. |
+| **12-byte IV for GCM** | NIST SP 800-38D recommends 96-bit (12-byte) IVs for GCM. Random generation is safe for a single key use (each KEM encapsulation produces a fresh key). |
+| **HKDF for key derivation** | RFC 5869 standard KDF. Domain separation via the `info` parameter prevents cross-protocol attacks. |
+| **Separator byte 0x00 in HMAC input** | Prevents length-extension ambiguity: `payload="AB", context="CD"` and `payload="ABC", context="D"` produce different MAC inputs. |
+| **Key material wiping** | `Arrays.fill(keyBytes, (byte) 0)` in `finally` blocks. This is a best-effort defense; the JVM may copy byte arrays during GC, but it reduces the window of exposure. |
+| **BouncyCastlePQCProvider singleton** | Thread-safe, avoids repeated JCA provider registration and object creation overhead. |
+
+---
+
+## Integrating XaihtKyber Into Your Own Projects
+
+### What You Can Reuse
+
+The **crypto** and **service** packages are completely independent from the servlet container. You can drop them into any Java 21+ project:
+
+```text
+Reusable (copy these):
+  com.xaiht.kyber.crypto.*     ← All files
+  com.xaiht.kyber.service.*    ← All files
+
+Not needed for library use:
+  com.xaiht.kyber.web.*        ← Servlet-specific
+  src/main/webapp/**           ← JSP views, CSS, web.xml
+```
+
+### Step 1 – Add Dependencies
+
+Add Bouncy Castle PQC to your project's `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.bouncycastle</groupId>
+    <artifactId>bcprov-jdk18on</artifactId>
+    <version>1.78.1</version>
+</dependency>
+```
+
+> **Note**: XaihtKyber uses `1.78.1.redhat-00002` from the Red Hat GA repository, but any `1.78.1+` release from Maven Central works the same way. If you do not need the Red Hat certified build, just use the upstream version.
+
+Your project must target **Java 21 or newer**:
+
+```xml
+<properties>
+    <maven.compiler.release>21</maven.compiler.release>
+</properties>
+```
+
+### Step 2 – Copy the Reusable Packages
+
+Copy these packages into your source tree (adjust the package namespace if needed):
+
+```text
+com/xaiht/kyber/crypto/
+    PostQuantumProviderRegistry.java
+    KyberSecurityLevel.java
+    KyberKeyMaterial.java
+    CipherEnvelope.java
+    AttestationEnvelope.java
+    VerificationResult.java
+    CryptoOperationException.java
+    ValidationException.java
+
+com/xaiht/kyber/service/
+    KyberKeyService.java
+    KyberCipherService.java
+    KyberAttestationService.java
+```
+
+> **CDI annotations are optional**: The service classes use `@Dependent` and `@Inject` from Jakarta CDI, but they also provide **no-arg constructors** for plain Java instantiation. If your project does not use CDI, you can either remove the annotations or simply ignore them — they have no effect without a CDI container.
+
+### Step 3 – Generate Keys
+
+```java
+import com.xaiht.kyber.crypto.KyberKeyMaterial;
+import com.xaiht.kyber.crypto.KyberSecurityLevel;
+import com.xaiht.kyber.service.KyberKeyService;
+
+// Create service (no CDI container needed)
+KyberKeyService keyService = new KyberKeyService();
+
+// Generate a Kyber-1024 key pair
+KyberKeyMaterial keys = keyService.generateKeyPair(KyberSecurityLevel.KYBER_1024);
+
+// Access the outputs
+String publicKeyBase64  = keys.getPublicKeyBase64();   // Share with senders
+String privateKeyBase64 = keys.getPrivateKeyBase64();  // Keep secret!
+String fingerprint      = keys.getKeyFingerprint();    // e.g. "a3f2b9c10e4d..."
+
+System.out.println("Security Level: " + keys.getSecurityLevel().getDisplayName());
+System.out.println("Fingerprint:    " + fingerprint);
+System.out.println("Public Key:     " + publicKeyBase64.substring(0, 40) + "...");
+```
+
+### Step 4 – Encrypt Data
+
+```java
+import com.xaiht.kyber.crypto.CipherEnvelope;
+import com.xaiht.kyber.service.KyberCipherService;
+
+KyberCipherService cipherService = new KyberCipherService();
+
+// Encrypt a message for the recipient (you need their public key)
+CipherEnvelope envelope = cipherService.cipher(
+    KyberSecurityLevel.KYBER_1024,
+    recipientPublicKeyBase64,  // Recipient's public key
+    "This is classified information.",  // Plaintext
+    "tenant=finance;channel=secure"     // Additional Authenticated Data (AAD)
+);
+
+// Send all five envelope fields to the recipient:
+String encapsulation = envelope.getEncapsulationBase64();     // Kyber KEM ciphertext
+String iv            = envelope.getInitializationVectorBase64(); // 12-byte IV
+String ciphertext    = envelope.getCipherTextBase64();         // AES-GCM ciphertext
+String aad           = envelope.getAadBase64();                // AAD (bound, not encrypted)
+String fingerprint   = envelope.getRecipientFingerprint();     // For key selection
+```
+
+### Step 5 – Decrypt Data
+
+```java
+// On the recipient's side (they have the matching private key)
+String plaintext = cipherService.decipher(
+    KyberSecurityLevel.KYBER_1024,
+    recipientPrivateKeyBase64,   // Recipient's private key
+    envelope.getEncapsulationBase64(),
+    envelope.getInitializationVectorBase64(),
+    envelope.getCipherTextBase64(),
+    envelope.getAadBase64()
+);
+
+System.out.println(plaintext);  // "This is classified information."
+```
+
+### Step 6 – Attest Payload Integrity
+
+```java
+import com.xaiht.kyber.crypto.AttestationEnvelope;
+import com.xaiht.kyber.service.KyberAttestationService;
+
+KyberAttestationService attestationService = new KyberAttestationService();
+
+// Create an attestation that only the verifier (private key holder) can validate
+AttestationEnvelope attest = attestationService.attest(
+    KyberSecurityLevel.KYBER_768,
+    verifierPublicKeyBase64,          // Verifier's public key
+    "{\"approved\": true, \"amount\": 50000}",  // Payload to protect
+    "transaction-id-9f3c"              // Context / scope identifier
+);
+
+// Send to verifier: attest.getEncapsulationBase64(), attest.getMacBase64()
+```
+
+### Step 7 – Verify an Attestation
+
+```java
+import com.xaiht.kyber.crypto.VerificationResult;
+
+// On the verifier's side
+VerificationResult result = attestationService.verify(
+    KyberSecurityLevel.KYBER_768,
+    verifierPrivateKeyBase64,          // Verifier's private key
+    "{\"approved\": true, \"amount\": 50000}",  // Original payload
+    "transaction-id-9f3c",             // Original context
+    attest.getEncapsulationBase64(),
+    attest.getMacBase64()
+);
+
+if (result.isVerified()) {
+    System.out.println("✓ Payload integrity confirmed.");
+} else {
+    System.out.println("✗ Payload has been tampered with!");
+}
+```
+
+### Standalone Java Usage (No Jakarta EE)
+
+The services work without any application server. Here's a complete standalone example:
+
+```java
+import com.xaiht.kyber.crypto.*;
+import com.xaiht.kyber.service.*;
+
+public class KyberDemo {
+    public static void main(String[] args) {
+        KyberKeyService keyService = new KyberKeyService();
+        KyberCipherService cipherService = new KyberCipherService(keyService);
+        KyberAttestationService attestService = new KyberAttestationService(keyService);
+
+        // --- Encryption round-trip ---
+        KyberKeyMaterial keys = keyService.generateKeyPair(KyberSecurityLevel.KYBER_1024);
+
+        CipherEnvelope encrypted = cipherService.cipher(
+            KyberSecurityLevel.KYBER_1024,
+            keys.getPublicKeyBase64(),
+            "Hello, post-quantum world!",
+            ""
+        );
+
+        String decrypted = cipherService.decipher(
+            KyberSecurityLevel.KYBER_1024,
+            keys.getPrivateKeyBase64(),
+            encrypted.getEncapsulationBase64(),
+            encrypted.getInitializationVectorBase64(),
+            encrypted.getCipherTextBase64(),
+            encrypted.getAadBase64()
+        );
+
+        assert "Hello, post-quantum world!".equals(decrypted);
+
+        // --- Attestation round-trip ---
+        AttestationEnvelope attestation = attestService.attest(
+            KyberSecurityLevel.KYBER_1024,
+            keys.getPublicKeyBase64(),
+            "critical-data",
+            "context-v1"
+        );
+
+        VerificationResult verified = attestService.verify(
+            KyberSecurityLevel.KYBER_1024,
+            keys.getPrivateKeyBase64(),
+            "critical-data",
+            "context-v1",
+            attestation.getEncapsulationBase64(),
+            attestation.getMacBase64()
+        );
+
+        assert verified.isVerified();
+        System.out.println("All post-quantum operations completed successfully.");
+    }
+}
+```
+
+### Spring Boot Integration
+
+If your project uses Spring Boot instead of Jakarta EE, register the services as beans:
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.xaiht.kyber.service.*;
+
+@Configuration
+public class KyberConfiguration {
+
+    @Bean
+    public KyberKeyService kyberKeyService() {
+        return new KyberKeyService();
+    }
+
+    @Bean
+    public KyberCipherService kyberCipherService(KyberKeyService keyService) {
+        return new KyberCipherService(keyService);
+    }
+
+    @Bean
+    public KyberAttestationService kyberAttestationService(KyberKeyService keyService) {
+        return new KyberAttestationService(keyService);
+    }
+}
+```
+
+Then inject them anywhere:
+
+```java
+@RestController
+public class SecureMessageController {
+
+    @Autowired
+    private KyberCipherService cipherService;
+
+    @PostMapping("/encrypt")
+    public CipherEnvelope encrypt(@RequestBody EncryptRequest req) {
+        return cipherService.cipher(
+            KyberSecurityLevel.fromFormValue(req.level()),
+            req.publicKey(),
+            req.plaintext(),
+            req.aad()
+        );
+    }
+}
+```
+
+### Serializing Envelopes for Wire Transfer
+
+The envelope classes are plain POJOs. For JSON serialization (REST APIs, message queues), use Jackson or Gson:
+
+```java
+// Jackson example
+ObjectMapper mapper = new ObjectMapper();
+
+// Serialize
+String json = mapper.writeValueAsString(cipherEnvelope);
+
+// Deserialize (you'll need a @JsonCreator or a custom deserializer
+// since the classes use constructor injection)
+```
+
+For production APIs, consider creating DTOs or records that mirror the envelope fields:
+
+```java
+public record CipherEnvelopeDto(
+    String securityLevel,
+    String recipientFingerprint,
+    String encapsulation,
+    String initializationVector,
+    String cipherText,
+    String aad
+) {
+    public static CipherEnvelopeDto from(CipherEnvelope env) {
+        return new CipherEnvelopeDto(
+            env.getSecurityLevel().getFormValue(),
+            env.getRecipientFingerprint(),
+            env.getEncapsulationBase64(),
+            env.getInitializationVectorBase64(),
+            env.getCipherTextBase64(),
+            env.getAadBase64()
+        );
+    }
+}
+```
+
+### Key Storage Recommendations
+
+| Environment | Public Key Storage | Private Key Storage |
+|---|---|---|
+| Development | File system, database, in-memory | File system (restricted permissions), environment variable |
+| Staging | Database, config map | HashiCorp Vault, AWS Secrets Manager, Azure Key Vault |
+| Production | Database, distributed config | HSM, KMS, Vault with audit logging |
+
+**Critical rules**:
+- Never log private keys
+- Never transmit private keys over unencrypted channels
+- Rotate key pairs periodically (Kyber key generation is fast: ~1ms for Kyber-1024)
+- Store the `keyFingerprint` alongside keys for correlation
+
+---
+
+## Prerequisites
+
+| Component | Required | Why |
+|---|---|---|
+| JDK | Java 21+ | `pom.xml` enforces `maven.compiler.release=21` with `maven-enforcer-plugin` |
+| Maven | 3.9+ recommended | No Maven Wrapper included in this repo |
+| Application server | GlassFish 7 or Payara 6 | Jakarta EE 10 Web Profile: Servlet 6.0, CDI 4.0, JSP |
+
+> **Important**: Use a JDK, not a JRE. The project compiles source code and uses `javac`.
+
+---
+
+## Build and Test
+
+### Verify your toolchain
 
 ```powershell
-java -version
-javac -version
-mvn -version
+java -version       # Must show 21+
+javac -version      # Must be present (JDK, not JRE)
+mvn -version        # Must be available on PATH
 ```
 
-You want to see:
-
-- `javac` available
-- Java 21 or newer
-- Maven available on `PATH`
-
-If `javac` is missing, you are using a JRE or your `JAVA_HOME` is wrong.
-
-### 2. Build and run tests
+### Build and run tests
 
 ```powershell
 mvn clean test
 ```
 
-This validates:
+This runs:
+- Cipher/decipher round-trip tests across Kyber-512, Kyber-768, Kyber-1024
+- Attestation verify + tamper rejection tests
 
-- source compilation
-- test compilation
-- Kyber cipher round-trip tests
-- Kyber attestation verification tests
-
-### 3. Build the deployable WAR
+### Build the deployable WAR
 
 ```powershell
 mvn clean package
 ```
 
-Expected output artifact:
+Output: `target/XaihtKyber.war`
 
-```text
-target/XaihtKyber.war
-```
+---
 
-If `mvn clean package` succeeds, the project has compiled correctly.
+## Running the Application
 
-## Run With Docker
+### GlassFish 7 Deployment
 
-This repository includes a multi-stage Dockerfile that builds the WAR with Maven
-and runs it on Payara Server Web Profile 6.
-
-The build stage uses JDK 21 via `maven:3.9.11-eclipse-temurin-21`, which matches
-the Maven baseline configured in `pom.xml`.
-
-Why this image:
-
-- `payara/server-web` matches the Jakarta EE Web Profile requirements of this app
-- the Payara 6 line is aligned with Jakarta EE 10
-- the image runs the server as the non-root `payara` user
-- only the application HTTP port needs to be exposed for normal use
-
-Build the image:
-
-```powershell
-docker build -t xaiht-kyber .
-```
-
-Run the container:
-
-```powershell
-docker run --rm -p 8080:8080 xaiht-kyber
-```
-
-Then open:
-
-```text
-http://localhost:8080/XaihtKyber/
-```
-
-Operational note:
-
-- The Dockerfile does not expose Payara admin port `4848`.
-- Keep it that way unless you explicitly need remote administration.
-- If you later publish this image, pin the base image by digest for stronger supply-chain control.
-
-If you want the exact clean rebuild flow for local Docker, use this sequence:
-
-```powershell
-docker rm -f xaiht-kyber-app
-docker image rm -f xaiht-kyber:latest
-docker build -t xaiht-kyber:latest .
-docker run -d --name xaiht-kyber-app -p 8080:8080 xaiht-kyber:latest
-```
-
-Use this variant if you want Docker to remove the container automatically when you stop it:
-
-```powershell
-docker run --rm -p 8080:8080 xaiht-kyber:latest
-```
-
-## Deploy With Kubernetes
-
-This repository includes `kubernetes-deployment.yaml` for a simple Kubernetes deployment.
-
-What the manifest does:
-
-- creates one deployment named `xaiht-kyber-deployment`
-- runs the container image `xaiht-kyber:latest`
-- exposes the container on internal port `8080`
-- exposes the Kubernetes service on external port `9595`
-- uses TCP startup, readiness, and liveness probes so Payara can finish booting before Kubernetes treats the pod as unhealthy
-- does not mount certificates and does not require any TLS secret
-
-Before applying the manifest, build the image:
-
-```powershell
-docker build -t xaiht-kyber:latest .
-```
-
-Apply the manifest:
-
-```powershell
-kubectl apply -f kubernetes-deployment.yaml
-kubectl rollout status deployment/xaiht-kyber-deployment
-```
-
-Check the resulting resources:
-
-```powershell
-kubectl get deployment xaiht-kyber-deployment
-kubectl get pods -l app=xaiht-kyber
-kubectl get service xaiht-kyber-service
-```
-
-Access pattern:
-
-- service port: `9595`
-- container port: `8080`
-- application context path: `/XaihtKyber/`
-
-Important:
-
-- If your cluster cannot use a locally built image, push `xaiht-kyber:latest` to a registry and change the `image:` field in `kubernetes-deployment.yaml`.
-- The Kubernetes service port is not the same as the application context path. The port is `9595`; the path is still `/XaihtKyber/`.
-
-## Redeploy With Jenkins
-
-This repository includes a Windows-oriented `Jenkinsfile` that automates the rebuild and redeploy flow.
-
-The pipeline performs these steps:
-
-1. Deletes the Kubernetes resources defined in `kubernetes-deployment.yaml`.
-2. Stops and removes the old local Docker container `xaiht-kyber-app`.
-3. Removes existing local `xaiht-kyber` images.
-4. Builds a fresh `xaiht-kyber:latest` image.
-5. Starts the refreshed container locally on port `8080`.
-6. Applies `kubernetes-deployment.yaml` again.
-7. Polls `xaiht-kyber-deployment` until all desired replicas are updated and available.
-8. Dumps deployment, pod, and container diagnostics before failing if Kubernetes never reaches readiness.
-
-Jenkins agent requirements:
-
-- Windows agent
-- Docker installed and available on `PATH`
-- Kubernetes CLI `kubectl` available on `PATH`
-- access to the target Docker daemon
-- access to the target Kubernetes context
-- enough time for the image pull and Payara startup sequence to complete before the Jenkins timeout window closes
-
-The pipeline does not create TLS secrets and does not expect certificate files. That is intentional.
-
-## Quick Start For New Developers
-
-If you want the shortest correct path for a traditional WAR deployment:
-
-1. Install JDK 21.
-2. Install Maven 3.9+.
-3. Install GlassFish 7.
-4. Confirm `java`, `javac`, and `mvn` work from the terminal.
-5. Run `mvn clean package`.
-6. Deploy `target/XaihtKyber.war` to GlassFish 7.
-7. Open `http://localhost:8080/XaihtKyber/`.
-
-If you want the shortest containerized path instead:
-
-1. Install Docker.
-2. Build the image with `docker build -t xaiht-kyber:latest .`.
-3. Apply `kubectl apply -f kubernetes-deployment.yaml`.
-4. Reach the app through the service on port `9595` and the context path `/XaihtKyber/`.
-
-## Set Up GlassFish 7
-
-GlassFish 7 is the safest documented target for this repository.
-
-Before deploying, make sure:
-
-- GlassFish 7 is installed
-- a domain exists, usually `domain1`
-- the domain is started
-
-Typical GlassFish URL after deployment:
-
-```text
-http://localhost:8080/XaihtKyber/
-```
-
-The context path is derived from the WAR name, so `XaihtKyber.war` becomes `XaihtKyber`.
-
-## Deploy To GlassFish 7
-
-### Option A: Manual copy to `autodeploy`
-
-1. Build the WAR:
+**Option A – GlassFish autodeploy (manual)**:
 
 ```powershell
 mvn clean package
-```
-
-1. Copy it into the domain autodeploy folder:
-
-```powershell
 Copy-Item .\target\XaihtKyber.war "C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy\"
 ```
 
-1. Start the domain if needed, then open:
-
-```text
-http://localhost:8080/XaihtKyber/
-```
-
-### Option B: Use the Maven `auto-deploy` profile
-
-The repository already contains an `auto-deploy` profile in `pom.xml`.
-
-It copies the built WAR during the `install` phase to:
-
-```text
-%GLASSFISH_HOME%\glassfish\domains\domain1\autodeploy
-```
-
-Important:
-
-- Set `GLASSFISH_HOME` to the GlassFish installation root.
-- Do not set it to the nested `glassfish` folder.
-
-Example:
-
-- Correct: `C:\glassfish7`
-- Wrong: `C:\glassfish7\glassfish`
-
-PowerShell example:
+**Option B – Maven auto-deploy profile**:
 
 ```powershell
 $env:GLASSFISH_HOME = "C:\glassfish7"
 mvn clean install -Pauto-deploy
 ```
 
-If your domain is not `domain1`, override it:
+**Option C – asadmin**:
 
 ```powershell
-mvn clean install -Pauto-deploy -Dglassfish.domain.name=customDomain
+C:\glassfish7\bin\asadmin.bat start-domain domain1
+C:\glassfish7\bin\asadmin.bat deploy --force=true .\target\XaihtKyber.war
 ```
 
-If you want to bypass `GLASSFISH_HOME` and point directly to the folder:
+Open: `http://localhost:8080/XaihtKyber/`
+
+### Docker
 
 ```powershell
-mvn clean install -Pauto-deploy -Dglassfish.autodeploy.dir="C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy"
+docker build -t xaiht-kyber:latest .
+docker run --rm -p 8080:8080 xaiht-kyber:latest
 ```
 
-### Option C: Deploy with `asadmin`
+Open: `http://localhost:8080/XaihtKyber/`
 
-If you prefer explicit GlassFish administration:
+The Dockerfile uses a multi-stage build: `maven:3.9.11-eclipse-temurin-21` for compilation, `payara/server-web:6.2025.11-jdk21` for runtime.
 
-```powershell
-C:\path\to\glassfish7\bin\asadmin.bat start-domain domain1
-C:\path\to\glassfish7\bin\asadmin.bat deploy --force=true .\target\XaihtKyber.war
-```
-
-## Runtime Requirements And Assumptions
-
-This application expects a Jakarta EE web runtime that provides:
-
-- Servlet 6.0
-- JSP
-- CDI 4.0
-- Jakarta EE 10 web APIs
-
-The code specifically uses:
-
-- `@WebServlet`
-- `@Inject`
-- `beans.xml`
-- JSP pages under `src/main/webapp`
-
-That is why GlassFish 7 and Payara 6 are appropriate targets.
-
-## What The Application Does
-
-### Key generation
-
-`KyberKeyService` generates:
-
-- a Base64 X.509 public key
-- a Base64 PKCS#8 private key
-- a short SHA-256-based fingerprint
-
-### Buffer cipher
-
-`KyberCipherService`:
-
-1. Validates the Kyber public key and selected security level.
-2. Uses Kyber encapsulation to derive a shared secret.
-3. Produces an AES-256 key.
-4. Encrypts the plaintext with `AES/GCM/NoPadding`.
-5. Returns an envelope containing:
-   - security profile
-   - recipient fingerprint
-   - encapsulation
-   - Base64 IV
-   - Base64 ciphertext
-   - Base64 AAD
-
-### Buffer decipher
-
-`KyberCipherService` decapsulation recovers the AES key and decrypts the envelope.
-
-### Attestation
-
-`KyberAttestationService`:
-
-1. Encapsulates a shared secret to the verifier public key.
-2. Derives an HMAC key with HKDF-SHA-256.
-3. Computes `HMAC-SHA-256(payload || 0x00 || context)`.
-4. Returns encapsulation, MAC, and Base64-encoded context.
-
-### Verification
-
-The verifier uses the matching private key to decapsulate the shared secret and recompute the MAC.
-
-## Supported Security Levels
-
-- `Kyber-512`
-- `Kyber-768`
-- `Kyber-1024`
-
-Accepted form values in the code:
-
-- `512`, `768`, `1024`
-- `Kyber512`, `Kyber768`, `Kyber1024`
-
-The JSP UI submits numeric values.
-
-## Pages And Endpoints
-
-| Page | Purpose | POST endpoint |
-| --- | --- | --- |
-| `/index.jsp` | landing page | none |
-| `/key-generator.jsp` | generate key pairs | `/keys/generate` |
-| `/buffer-cipher.jsp` | encrypt plaintext | `/buffer/cipher` |
-| `/buffer-decipher.jsp` | decrypt ciphertext envelope | `/buffer/decipher` |
-| `/kyber-signer.jsp` | generate attestation envelope | `/attestation/sign` |
-| `/kyber-sign-verifier.jsp` | verify attestation envelope | `/attestation/verify` |
-
-## Validation Rules That Matter In Practice
-
-The application enforces:
-
-- CSRF token validation on every POST
-- security headers on responses
-- security-level matching between the selected profile and submitted keys
-- size limits on inputs
-- Base64 validation on envelope fields
-
-Important operational details:
-
-- Public and private keys may be plain Base64 or PEM-wrapped Base64.
-- The decryption IV must decode to exactly 12 bytes.
-- If you encrypted with empty AAD, the `aadBase64` field is expected to remain present but can be blank.
-- The attestation result includes `context` as Base64 for display, but verification still expects the original raw context text from the user, not the Base64 display value.
-
-## Security Headers Applied By The Web Layer
-
-`ServletSupport` applies:
-
-- `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
-- `Pragma: no-cache`
-- `Expires: 0`
-- `X-Content-Type-Options: nosniff`
-- `Content-Security-Policy`
-- `Referrer-Policy: no-referrer`
-- `X-Frame-Options: DENY`
-
-## Tests Included
-
-Current automated tests cover:
-
-- buffer cipher and decipher round trips across all supported Kyber levels
-- attestation and verification round trips across all supported Kyber levels
-- rejection of a tampered attested payload
-
-Run them with:
-
-```powershell
-mvn test
-```
-
-## Maven Profiles
-
-| Profile | Purpose | When to use it |
-| --- | --- | --- |
-| `auto-clean` | Explicit `target/` cleanup configuration | Usually not needed beyond normal `mvn clean` |
-| `auto-deploy` | Copy WAR to GlassFish autodeploy directory during `install` | Use for local GlassFish deployments |
-| `dependency-check` | Run OWASP Dependency-Check during `verify` | Use for dependency auditing |
-| `launch-report` | Open the generated dependency report on Windows | Use together with `dependency-check` |
-
-Examples:
-
-```powershell
-mvn verify -Pdependency-check
-mvn verify -Pdependency-check,launch-report
-```
-
-Note:
-
-- `launch-report` is Windows-oriented because it uses PowerShell `Start-Process`.
-- `auto-deploy` runs during `install`, so use `mvn clean install -Pauto-deploy`, not just `package`.
-
-## Common Mistakes
-
-### "It builds on my machine but does not deploy"
-
-Most likely causes:
-
-- deploying to a server that does not provide CDI/JSP/Jakarta EE 10 web APIs
-- using a plain servlet container without the missing Jakarta EE pieces
-- deploying an old WAR after changing the source
-
-### "Java is installed but Maven cannot compile"
-
-Most likely causes:
-
-- `JAVA_HOME` points to a JRE or wrong JDK
-- `javac` is not on `PATH`
-- Java version is below 21
-
-### "The auto-deploy profile cannot find GlassFish"
-
-Most likely causes:
-
-- `GLASSFISH_HOME` points to the wrong folder
-- the domain name is not `domain1`
-- the autodeploy directory does not exist yet
-
-### "Kubernetes is running but the app is not reachable"
-
-Most likely causes:
-
-- the image in `kubernetes-deployment.yaml` does not exist in a registry your cluster can pull from
-- the pod is still starting and Payara has not finished booting yet
-- you are opening the service port without the `/XaihtKyber/` context path
-- your cluster does not provide an externally reachable `LoadBalancer` address
-
-Check with:
-
-```powershell
-kubectl get pods -l app=xaiht-kyber
-kubectl describe pod -l app=xaiht-kyber
-kubectl get service xaiht-kyber-service
-```
-
-### "The Jenkins job fails during Docker cleanup or rebuild"
-
-Most likely causes:
-
-- Docker is not installed on the Jenkins agent
-- the Jenkins service account cannot access the Docker daemon
-- another process is already using local port `8080`
-- `kubectl` is missing or points to the wrong cluster context
-
-### "The Jenkins job fails while waiting for Kubernetes rollout"
-
-Most likely causes:
-
-- the cluster cannot see the locally built image `xaiht-kyber:latest`
-- the application needs longer than the previous timeout once image pull and Payara startup are included
-- the Jenkins agent has intermittent connectivity to the Kubernetes API server, so a long-lived watch stream becomes unreliable
-
-Check with:
-
-```powershell
-kubectl get deployment xaiht-kyber-deployment -n default -o wide
-kubectl get pods -n default -l app=xaiht-kyber -o wide
-kubectl describe pod -n default -l app=xaiht-kyber
-kubectl logs -n default -l app=xaiht-kyber --all-containers=true --tail=200
-```
-
-Practical note:
-
-- the Jenkins pipeline now polls deployment status instead of depending on `kubectl rollout status`, because the startup probe already allows up to 180 seconds and transient API watch failures were causing false negatives
-
-### "Decrypt or verify fails even though the values look correct"
-
-Check all of these:
-
-- the same Kyber security level was used end-to-end
-- the private key matches the public key used originally
-- the `aadBase64` value was preserved exactly for decryption
-- the original raw `context` text was re-entered for verification
-- ciphertext, encapsulation, MAC, and IV were not modified
-
-## Typical Developer Workflow
-
-1. Generate a key pair on `/key-generator.jsp`.
-2. Use the public key in either cipher or attestation generation.
-3. Preserve the returned envelope values exactly.
-4. Use the matching private key for decipher or verification.
-
-## In Short
-
-If you only need the essential instructions for GlassFish:
-
-```powershell
-mvn clean package
-Copy-Item .\target\XaihtKyber.war "C:\path\to\glassfish7\glassfish\domains\domain1\autodeploy\"
-```
-
-Then open:
-
-```text
-http://localhost:8080/XaihtKyber/
-```
-
-That is the intended local developer path for this repository.
-
-If you only need the essential instructions for Kubernetes:
+### Kubernetes
 
 ```powershell
 docker build -t xaiht-kyber:latest .
@@ -627,4 +847,103 @@ kubectl apply -f kubernetes-deployment.yaml
 kubectl rollout status deployment/xaiht-kyber-deployment
 ```
 
-If you only need the essential instructions for a full rebuild and redeploy in Jenkins, run the pipeline in `Jenkinsfile` on a Windows agent that has Docker and `kubectl` configured.
+- **Service port**: 9595
+- **Container port**: 8080
+- **Context path**: `/XaihtKyber/`
+- Includes startup, readiness, and liveness probes
+
+### Jenkins CI/CD
+
+The `Jenkinsfile` provides a full Windows-oriented pipeline:
+
+1. Cleans old Kubernetes resources
+2. Removes old Docker containers/images
+3. Builds fresh Docker image
+4. Runs container locally
+5. Applies Kubernetes manifest
+6. Polls deployment readiness with diagnostics on timeout
+
+**Agent requirements**: Windows, Docker, `kubectl`, access to Docker daemon and Kubernetes cluster.
+
+---
+
+## Pages and Endpoints
+
+| Page | Purpose | POST Endpoint |
+|---|---|---|
+| `/index.jsp` | Landing page with overview | — |
+| `/key-generator.jsp` | Generate Kyber key pairs | `POST /keys/generate` |
+| `/buffer-cipher.jsp` | Encrypt plaintext → cipher envelope | `POST /buffer/cipher` |
+| `/buffer-decipher.jsp` | Decrypt cipher envelope → plaintext | `POST /buffer/decipher` |
+| `/kyber-signer.jsp` | Generate integrity attestation | `POST /attestation/sign` |
+| `/kyber-sign-verifier.jsp` | Verify integrity attestation | `POST /attestation/verify` |
+
+---
+
+## Security Considerations
+
+### Response Headers
+
+`ServletSupport` applies on every response:
+
+| Header | Value |
+|---|---|
+| `Cache-Control` | `no-store, no-cache, must-revalidate, max-age=0` |
+| `Pragma` | `no-cache` |
+| `Expires` | `0` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Content-Security-Policy` | `default-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'self'` |
+| `Referrer-Policy` | `no-referrer` |
+| `X-Frame-Options` | `DENY` |
+
+### Input Validation
+
+- CSRF token required on every POST (session-bound UUID)
+- Security level validated against the actual decoded key's parameter set
+- Size limits on all text inputs (max 256 KB for plaintext, 32 KB for keys)
+- Base64 format validation on all envelope fields
+- PEM header/footer stripping for key inputs (supports both raw Base64 and PEM)
+- IV must decode to exactly 12 bytes
+
+### XSS Prevention
+
+All JSP output uses the `h()` helper function from `helpers.jspf`, which escapes `&`, `<`, `>`, `"`, and `'`.
+
+---
+
+## Maven Profiles
+
+| Profile | Phase | Purpose |
+|---|---|---|
+| `auto-clean` | clean | Explicit `target/` cleanup |
+| `auto-deploy` | install | Copy WAR to GlassFish autodeploy directory |
+| `dependency-check` | verify | Run OWASP Dependency-Check (set `NVD_API_KEY` env var for faster scans) |
+| `launch-report` | verify | Open the dependency-check HTML report (Windows/PowerShell only) |
+
+```powershell
+# Dependency audit
+mvn verify -Pdependency-check
+
+# Audit + auto-open report
+mvn verify -Pdependency-check,launch-report
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Likely Cause | Solution |
+|---|---|---|
+| `mvn clean package` fails with Java version error | JDK < 21 or `JAVA_HOME` pointing to a JRE | Install JDK 21+, set `JAVA_HOME` correctly |
+| Builds but fails to deploy | Server lacks CDI, JSP, or Jakarta EE 10 APIs | Use GlassFish 7, Payara 6, or equivalent Jakarta EE 10 Web Profile server |
+| `auto-deploy` profile can't find GlassFish | `GLASSFISH_HOME` wrong or domain doesn't exist | Point to installation root (e.g., `C:\glassfish7`, not `C:\glassfish7\glassfish`) |
+| K8s pod not reachable | Image not accessible to cluster, or service port vs context path confusion | Push image to registry, access via `<service-ip>:9595/XaihtKyber/` |
+| Decryption fails with correct-looking values | Security level mismatch, wrong key, modified AAD, or IV not exactly 12 bytes | Ensure end-to-end consistency of all envelope fields |
+| Verification fails | Payload or context text doesn't match original (even whitespace matters) | Re-enter exact original values; note that the UI displays context as Base64 but verification expects raw text |
+| Jenkins pipeline timeout | Payara startup + image pull exceeds rollout timeout | Increase `K8S_ROLLOUT_TIMEOUT_SECONDS` in Jenkinsfile |
+
+---
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](./LICENSE).
